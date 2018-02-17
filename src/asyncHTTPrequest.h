@@ -112,27 +112,27 @@ class asyncHTTPrequest {
     //__________________________________________________________________________________________________________*/
     void    setDebug(bool);                                         // Turn debug message on/off
 
-	bool	open(const char* /*GET/POST*/, const char* URL);        // Initiate a request
+    bool    open(const char* /*GET/POST*/, const char* URL);        // Initiate a request
     void    onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change
                                                                     // or you can simply poll readyState()    
-    void	setRxTimeout(int);                                      // overide default connect timeout (seconds)
+    void    setRxTimeout(int);                                      // overide default connect timeout (seconds)
     void    setAckTimeout(uint32_t);                                // overide default data ack timeout (ms)
 
-    void	setReqHeader(const char* name, const char* value);      // add a request header     
-	void	setReqHeader(const char* name, int32_t value);          // overload to use integer value     
+    void    setReqHeader(const char* name, const char* value);      // add a request header     
+    void    setReqHeader(const char* name, int32_t value);          // overload to use integer value     
 
-	bool	send();                                                 // Send the request (GET)
-	bool	send(String body);                                      // Send the request (POST)
-	bool	send(const char* body);                                 // Send the request (POST)
+    bool    send();                                                 // Send the request (GET)
+    bool    send(String body);                                      // Send the request (POST)
+    bool    send(const char* body);                                 // Send the request (POST)
     void    abort();                                                // Abort the current operation
     
-    int		readyState();                                           // Return the ready state
+    int	    readyState();                                           // Return the ready state
 	
-	int		respHeaderCount();                                      // Retrieve count of response headers
-	char*	respHeaderName(int index);                              // Return header name by index
-	char*	respHeaderValue(int index);                             // Return header value by index
-	char*	respHeaderValue(const char* name);                      // Return header value by name
-	bool	respHeaderExists(const char* name);                     // Does header exist by name?
+    int	    respHeaderCount();                                      // Retrieve count of response headers
+    char*   respHeaderName(int index);                              // Return header name by index
+    char*   respHeaderValue(int index);                             // Return header value by index
+    char*   respHeaderValue(const char* name);                      // Return header value by name
+    bool    respHeaderExists(const char* name);                     // Does header exist by name?
     String  headers();                                              // Return all headers as String
 
     void    onData(onDataCB, void* arg = 0);                        // Notify when min data is available
@@ -171,17 +171,17 @@ class asyncHTTPrequest {
     void*               _onDataCBarg; 
     size_t              _onDataCBmin;
 		
-	URL*        _URL;
+    URL*        _URL;
     uint16_t    port;
-	AsyncClient* _client;
+    AsyncClient* _client;
     size_t      _contentLength;
     size_t      _contentRead;
     size_t      _notAcked;
 
-	String*     _request;
-	String*	    _response;
+    String*     _request;
+    String*	_response;
 
-	header*	    _headers;
+    header*	_headers;
 
     header*     _addHeader(const char*, const char*);
     header*     _getHeader(const char*);
