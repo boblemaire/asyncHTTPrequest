@@ -127,10 +127,10 @@ class asyncHTTPrequest {
     void    abort();                                                // Abort the current operation
     
     int     readyState();                                           // Return the ready state
-	
-	int     respHeaderCount();                                      // Retrieve count of response headers
-	char*   respHeaderName(int index);                              // Return header name by index
-	char*   respHeaderValue(int index);                             // Return header value by index
+
+    int     respHeaderCount();                                      // Retrieve count of response headers
+    char*   respHeaderName(int index);                              // Return header name by index
+    char*   respHeaderValue(int index);                             // Return header value by index
 	char*   respHeaderValue(const char* name);                      // Return header value by name
 	bool    respHeaderExists(const char* name);                     // Does header exist by name?
     String  headers();                                              // Return all headers as String
