@@ -111,6 +111,7 @@ class asyncHTTPrequest {
     //External functions in typical order of use:
     //__________________________________________________________________________________________________________*/
     void    setDebug(bool);                                         // Turn debug message on/off
+    bool    debug();                                                // is debug on or off?
 
     bool    open(const char* /*GET/POST*/, const char* URL);        // Initiate a request
     void    onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change

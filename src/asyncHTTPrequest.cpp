@@ -30,13 +30,17 @@ asyncHTTPrequest::~asyncHTTPrequest(){
 }
 
 //**************************************************************************************************************
-void	asyncHTTPrequest::setDebug(bool debug){
+void    asyncHTTPrequest::setDebug(bool debug){
     if(_debug || debug) {
         _debug = true;
         DEBUG_HTTP("setDebug(%s)\r\n", debug ? "on" : "off");
     }
-    _debug = debug;
+    return _debug = debug;
 }
+
+//**************************************************************************************************************
+bool    asyncHTTPrequest::debug(){
+    return(_debug);
 
 //**************************************************************************************************************
 bool	asyncHTTPrequest::open(const char* method, const char* URL){
@@ -61,8 +65,9 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
     if( ! _parseURL(URL)){return false;}
     _addHeader("host",_URL->host);
 	return _connect();
-}
 
+}
+//**************************************************************************************************************
 void    asyncHTTPrequest::onReadyStateChange(readyStateChangeCB cb, void* arg){
     _readyStateChangeCB = cb;
     _readyStateChangeCBarg = arg;
