@@ -35,12 +35,13 @@ void    asyncHTTPrequest::setDebug(bool debug){
         _debug = true;
         DEBUG_HTTP("setDebug(%s)\r\n", debug ? "on" : "off");
     }
-    return _debug = debug;
+	_debug = debug;
 }
 
 //**************************************************************************************************************
 bool    asyncHTTPrequest::debug(){
     return(_debug);
+}
 
 //**************************************************************************************************************
 bool	asyncHTTPrequest::open(const char* method, const char* URL){
