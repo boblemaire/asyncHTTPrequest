@@ -131,8 +131,8 @@ class asyncHTTPrequest {
     int     respHeaderCount();                                      // Retrieve count of response headers
     char*   respHeaderName(int index);                              // Return header name by index
     char*   respHeaderValue(int index);                             // Return header value by index
-	char*   respHeaderValue(const char* name);                      // Return header value by name
-	bool    respHeaderExists(const char* name);                     // Does header exist by name?
+    char*   respHeaderValue(const char* name);                      // Return header value by name
+    bool    respHeaderExists(const char* name);                     // Does header exist by name?
     String  headers();                                              // Return all headers as String
 
     void    onData(onDataCB, void* arg = 0);                        // Notify when min data is available
