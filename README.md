@@ -14,6 +14,4 @@ Supports:
 
 Simple to use.
 
-No TLS yet.
-
 More details to follow - or read the code.
