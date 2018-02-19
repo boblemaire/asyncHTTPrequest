@@ -1,7 +1,7 @@
 # asyncHTTPrequest
 
-Fully asynchronous HTTP for ESP using ESPasyncTCP.
-Adds subset of HTTP onto ESPasyncTCP.
+Fully asynchronous HTTP for ESP.
+Adds subset of HTTP onto ESPAsyncTCP.
 Methods similar in format and use to XmlHTTPrequest in Javascript.
 
 Supports:
