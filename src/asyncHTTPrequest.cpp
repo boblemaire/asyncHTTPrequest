@@ -12,7 +12,6 @@ asyncHTTPrequest::asyncHTTPrequest():
     _client(nullptr),
     _request(nullptr),
     _response(nullptr),
-    _connecting(false),
     _readyStateChangeCB(nullptr),
     _onDataCB(nullptr)
     {DEBUG_HTTP("New request.");}
@@ -123,6 +122,7 @@ int	asyncHTTPrequest::responseHTTPcode(){
 
 //**************************************************************************************************************
 String	asyncHTTPrequest::responseText(){
+    DEBUG_HTTP("responseText() ");
     if( ! _response || _readyState < readyStateLoading || ! available()){
         DEBUG_HTTP("responseText() no data\r\n");
         return String(); 
@@ -173,18 +173,16 @@ size_t  asyncHTTPrequest::responseRead(uint8_t* buf, size_t len){
         DEBUG_HTTP("responseRead() no data\r\n");
         return 0;
     } 
-    size_t avail = available();
-    if(avail > len){
-        avail = len;
-    }
+    size_t avail = available() > len ? len : available();
     _response->getBytes((byte*) buf, avail);
     DEBUG_HTTP("responseRead() %s... (%d)\r\n", _response->substring(0,16).c_str() , avail);
     _response->remove(0, avail);
     _contentRead += avail;
+    size_t toAck = available() ? avail : _notAcked;
     if(_client){
-        _client->ack(avail); 
-        _notAcked -= avail;  
+        _client->ack(toAck); 
     }
+    _notAcked -= toAck;
     return avail;
 }
 
@@ -280,7 +278,6 @@ bool  asyncHTTPrequest::_connect(){
         _setReadyState(readyStateDone);
         return false;
     }
-    _connecting = true;
     return true;
 }
 
@@ -308,7 +305,7 @@ bool   asyncHTTPrequest::_buildRequest(const char *body){
             // Create a String buffer and reserve space.
 
     _request = new String;
-    if( ! _request->reserve(headerSize + strlen(body) ? strlen(body) + 2 : 0)){
+    if( ! _request->reserve(headerSize + strlen(body))){
         DEBUG_HTTP("!no memory to build request\r\n");
         _HTTPcode = HTTPCODE_TOO_LESS_RAM;
         return false;
@@ -403,7 +400,6 @@ void  asyncHTTPrequest::_onConnect(AsyncClient* client){
     _client = client;
     delete _URL;
      _URL = nullptr;
-    _connecting = false;
     _setReadyState(readyStateOpened);
     _response = new String;
     _notAcked = 0;
@@ -425,7 +421,7 @@ void  asyncHTTPrequest::_onError(AsyncClient* client, int8_t error){
 //**************************************************************************************************************
 void  asyncHTTPrequest::_onDisconnect(AsyncClient* client){
     DEBUG_HTTP("_onDisconnect handler\r\n");
-    if(_connecting){
+    if(_readyState < readyStateOpened){
         _HTTPcode = HTTPCODE_NOT_CONNECTED;
     }
     else if (_HTTPcode > 0 && 
