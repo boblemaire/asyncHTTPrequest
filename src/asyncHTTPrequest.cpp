@@ -443,7 +443,7 @@ void  asyncHTTPrequest::_onDisconnect(AsyncClient* client){
 //**************************************************************************************************************
 void  asyncHTTPrequest::_onTimeout(AsyncClient* client){
     DEBUG_HTTP("_onTimeout handler\r\n");
-    _client->abort();
+    _client->close();
     _HTTPcode = HTTPCODE_READ_TIMEOUT;
 }
 
