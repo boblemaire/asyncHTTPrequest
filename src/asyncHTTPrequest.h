@@ -34,11 +34,10 @@
 #include <pgmspace.h>
 
 #define DEBUG_HTTP(format,...)  if(_debug){\
-                                    DEBUG_IOTA_PORT.print("Debug: ");\
+                                    DEBUG_IOTA_PORT.printf("Debug(%3d): ", millis()-_requestStartTime);\
                                     DEBUG_IOTA_PORT.printf_P(PSTR(format),##__VA_ARGS__);}
 
-#define DEFAULT_RX_TIMEOUT 3                    // Seconds for connect timeout
-#define DEFAULT_ACK_TIMEOUT 2000                // Ms for ack timeout
+#define DEFAULT_RX_TIMEOUT 3                    // Seconds for timeout
 
 #define HTTPCODE_CONNECTION_REFUSED  (-1)
 #define HTTPCODE_SEND_HEADER_FAILED  (-2)
@@ -50,7 +49,7 @@
 #define HTTPCODE_TOO_LESS_RAM        (-8)
 #define HTTPCODE_ENCODING            (-9)
 #define HTTPCODE_STREAM_WRITE        (-10)
-#define HTTPCODE_READ_TIMEOUT        (-11)
+#define HTTPCODE_TIMEOUT             (-11)
 
 class asyncHTTPrequest {
 
@@ -116,8 +115,7 @@ class asyncHTTPrequest {
     bool    open(const char* /*GET/POST*/, const char* URL);        // Initiate a request
     void    onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change
                                                                     // or you can simply poll readyState()    
-    void	setRxTimeout(int);                                      // overide default connect timeout (seconds)
-    void    setAckTimeout(uint32_t);                                // overide default data ack timeout (ms)
+    void	setTimeout(int);                                        // overide default timeout (seconds)
 
     void    setReqHeader(const char* name, const char* value);      // add a request header     
     void    setReqHeader(const char* name, int32_t value);          // overload to use integer value     
@@ -160,8 +158,8 @@ class asyncHTTPrequest {
     int16_t         _HTTPcode;                  // HTTP response code or (negative) exception code
     bool            _chunked;                   // Processing chunked response
     bool            _debug;                     // Debug state
-    uint32_t        _RxTimeout;                 // Default or user overide RxTimeout in seconds
-    uint32_t        _AckTimeout;                // Default or user overide AckTimeout in ms
+    uint32_t        _timeout;                   // Default or user overide RxTimeout in seconds
+    uint32_t        _lastActivity;              // Time of last activity 
     uint32_t        _requestStartTime;          // Time last open() issued
     uint32_t        _requestEndTime;            // Time of last disconnect
     URL*            _URL;                       // -> URL data structure
@@ -199,7 +197,7 @@ class asyncHTTPrequest {
     void        _onDisconnect(AsyncClient*);
     void        _onData(void*, size_t);
     void        _onError(AsyncClient*, int8_t);
-    void        _onTimeout(AsyncClient*);
+    void        _onPoll(AsyncClient*);
     bool        _collectHeaders();
 };
 #endif 

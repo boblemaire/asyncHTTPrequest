@@ -1,19 +1,19 @@
 #include "asyncHTTPrequest.h"
 
 //**************************************************************************************************************
-asyncHTTPrequest::asyncHTTPrequest():
-    _debug(DEBUG_IOTA_HTTP_SET),
-    _RxTimeout(DEFAULT_RX_TIMEOUT),
-    _AckTimeout(DEFAULT_ACK_TIMEOUT),
-    _readyState(readyStateUnsent),
-    _HTTPcode(0),
-    _URL(nullptr),
-    _headers(nullptr),
-    _client(nullptr),
-    _request(nullptr),
-    _response(nullptr),
-    _readyStateChangeCB(nullptr),
-    _onDataCB(nullptr)
+asyncHTTPrequest::asyncHTTPrequest()
+    :_debug(DEBUG_IOTA_HTTP_SET)
+    ,_timeout(DEFAULT_RX_TIMEOUT)
+    ,_readyState(readyStateUnsent)
+    ,_HTTPcode(0)
+    ,_URL(nullptr)
+    ,_headers(nullptr)
+    ,_client(nullptr)
+    ,_request(nullptr)
+    ,_response(nullptr)
+    ,_readyStateChangeCB(nullptr)
+    ,_onDataCB(nullptr)
+    ,_lastActivity(0)
     {DEBUG_HTTP("New request.");}
 
 //**************************************************************************************************************
@@ -65,6 +65,7 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
 
     if( ! _parseURL(URL)){return false;}
     _addHeader("host",_URL->host);
+    _lastActivity = millis();
 	return _connect();
 
 }
@@ -75,15 +76,9 @@ void    asyncHTTPrequest::onReadyStateChange(readyStateChangeCB cb, void* arg){
 }
 
 //**************************************************************************************************************
-void	asyncHTTPrequest::setRxTimeout(int seconds){
-    DEBUG_HTTP("setRxTimeout(%d)\r\n", seconds);
-    _RxTimeout = seconds;
-}
-
-//**************************************************************************************************************
-void	asyncHTTPrequest::setAckTimeout(uint32_t ms){
-    DEBUG_HTTP("setAckTimeout(%d)\r\n", ms);
-    _AckTimeout = ms;
+void	asyncHTTPrequest::setTimeout(int seconds){
+    DEBUG_HTTP("setTimeout(%d)\r\n", seconds);
+    _timeout = seconds;
 }
 
 //**************************************************************************************************************
@@ -272,11 +267,9 @@ bool  asyncHTTPrequest::_parseURL(String url){
 bool  asyncHTTPrequest::_connect(){
     DEBUG_HTTP("_connect()\r\n");
     _client = new AsyncClient();
-    _client->setRxTimeout(_RxTimeout);
-    _client->setAckTimeout(_AckTimeout);
     _client->onConnect([](void *obj, AsyncClient *client){((asyncHTTPrequest*)(obj))->_onConnect(client);}, this);
     _client->onDisconnect([](void *obj, AsyncClient* client){((asyncHTTPrequest*)(obj))->_onDisconnect(client);}, this);
-    _client->onTimeout([](void *obj, AsyncClient *client, uint32_t time){((asyncHTTPrequest*)(obj))->_onTimeout(client);}, this);
+    _client->onPoll([](void *obj, AsyncClient *client){((asyncHTTPrequest*)(obj))->_onPoll(client);}, this);
     _client->onError([](void *obj, AsyncClient *client, uint32_t error){((asyncHTTPrequest*)(obj))->_onError(client, error);}, this);
     if( ! _client->connect(_URL->host, _URL->port)) {
         DEBUG_HTTP("!client.connect(%s, %d) failed\r\n", _URL->host, _URL->port);
@@ -284,6 +277,7 @@ bool  asyncHTTPrequest::_connect(){
         _setReadyState(readyStateDone);
         return false;
     }
+    _lastActivity = millis();
     return true;
 }
 
@@ -312,7 +306,7 @@ bool   asyncHTTPrequest::_buildRequest(const char *body){
 
     _request = new String;
     if( ! _request->reserve(headerSize + strlen(body))){
-        DEBUG_HTTP("!no memory to build request\r\n");
+        DEBUG_HTTP("!no memory to build request, avail %d, reqd %d\r\n", ESP.getFreeHeap(), headerSize + strlen(body));
         _HTTPcode = HTTPCODE_TOO_LESS_RAM;
         return false;
     }
@@ -354,7 +348,7 @@ size_t  asyncHTTPrequest::_send(){
     }
     size_t demand = _client->space();
     if(supply > demand) supply = demand;
-    size_t sent = _client->write(_request->c_str(), _request->length());
+    size_t sent = _client->write(_request->c_str(), supply);
     if(_request->length() == sent){
         delete _request;
         _request = nullptr;
@@ -362,7 +356,8 @@ size_t  asyncHTTPrequest::_send(){
     else {
         _request->remove(0, sent);
     }
-    DEBUG_HTTP("*sent %d\r\n", sent); 
+    DEBUG_HTTP("*sent %d\r\n", sent);
+    _lastActivity = millis(); 
     return sent;
 }
 
@@ -417,11 +412,21 @@ void  asyncHTTPrequest::_onConnect(AsyncClient* client){
     if(_client->canSend()){
         _send();
     }
+    _lastActivity = millis();
+}
+
+//**************************************************************************************************************
+void  asyncHTTPrequest::_onPoll(AsyncClient* client){
+    if(_timeout && (millis() - _lastActivity) > (_timeout * 1000)){
+        _client->close();
+        _HTTPcode = HTTPCODE_TIMEOUT;
+    }
 }
 
 //**************************************************************************************************************
 void  asyncHTTPrequest::_onError(AsyncClient* client, int8_t error){
     DEBUG_HTTP("_onError handler error=%d\r\n", error);
+    _HTTPcode = error;
 }
 
 //**************************************************************************************************************
@@ -437,19 +442,14 @@ void  asyncHTTPrequest::_onDisconnect(AsyncClient* client){
     delete _client;
     _client = nullptr;
     _requestEndTime = millis();
+    _lastActivity = 0;
     _setReadyState(readyStateDone);
-}
-
-//**************************************************************************************************************
-void  asyncHTTPrequest::_onTimeout(AsyncClient* client){
-    DEBUG_HTTP("_onTimeout handler\r\n");
-    _client->abort();
-    _HTTPcode = HTTPCODE_READ_TIMEOUT;
 }
 
 //**************************************************************************************************************
 void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
     DEBUG_HTTP("_onData handler length %d\r\n", len);
+    _lastActivity = millis();
     
                 // Insure space in buffer String, throw error if not.
 
