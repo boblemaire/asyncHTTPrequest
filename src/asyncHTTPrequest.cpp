@@ -447,6 +447,16 @@ void  asyncHTTPrequest::_onDisconnect(AsyncClient* client){
 }
 
 //**************************************************************************************************************
+<<<<<<< HEAD
+=======
+void  asyncHTTPrequest::_onTimeout(AsyncClient* client){
+    DEBUG_HTTP("_onTimeout handler\r\n");
+    _client->close();
+    _HTTPcode = HTTPCODE_READ_TIMEOUT;
+}
+
+//**************************************************************************************************************
+>>>>>>> origin/master
 void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
     DEBUG_HTTP("_onData handler length %d\r\n", len);
     _lastActivity = millis();
