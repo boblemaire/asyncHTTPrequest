@@ -53,12 +53,12 @@ The process state is set to build another post request in about 9 seconds.
 The important thing here is that there is no blocking.  The IoTaWatt is sampling an electric power cycle for 20ms (50Hz) and then running these processes during the next 10ms half-cycle, after which it samples another AC cycle. So not blocking to connect or wait for a response enables steady sampling.
 
 
-asyncHTTPrequest request;
+  <asyncHTTPrequest request;
 	.
 	.
 	.
 
-case sendPost:{
+   case sendPost:{
       String URL = EmonURL + ":" + String(EmonPort) + EmonURI + "/input/bulk";
       request.setTimeout(1);
       request.setDebug(true);
@@ -95,7 +95,7 @@ case sendPost:{
       reqEntries = 0;    
       state = post;
       return UnixNextPost;
-    }
+    }>
 
 and here's what the debug trace looks like:
 
