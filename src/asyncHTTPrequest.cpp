@@ -395,7 +395,6 @@ E        V V    E       N  NN     T           H   H   A   A   N  NN   D   D   L 
 EEEEE     V     EEEEE   N   N     T           H   H   A   A   N   N   DDDD    LLLLL   EEEEE   R   R    SSS 
 _______________________________________________________________________________________________________________*/
 
-
 //**************************************************************************************************************
 void  asyncHTTPrequest::_onConnect(AsyncClient* client){
     DEBUG_HTTP("_onConnect handler\r\n");
