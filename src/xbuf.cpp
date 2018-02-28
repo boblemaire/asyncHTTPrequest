@@ -19,6 +19,16 @@ size_t      xbuf::write(const uint8_t byte){
 }
 
 //*******************************************************************************************************************
+size_t      xbuf::write(const char* buf){
+    write((uint8_t*)buf, strlen(buf));
+}
+
+//*******************************************************************************************************************
+size_t      xbuf::write(String string){
+    write((uint8_t*)string.c_str(), string.length());
+}
+
+//*******************************************************************************************************************
 size_t      xbuf::write(const uint8_t* buf, const size_t len){
     size_t supply = len;
     while(supply){

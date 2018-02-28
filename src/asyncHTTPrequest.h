@@ -124,6 +124,7 @@ class asyncHTTPrequest {
     bool    send();                                                 // Send the request (GET)
     bool    send(String body);                                      // Send the request (POST)
     bool    send(const char* body);                                 // Send the request (POST)
+    bool    send(const uint8_t* buffer, size_t len);                      // Send the request (POST) (binary data?)   
     void    abort();                                                // Abort the current operation
     
     int     readyState();                                           // Return the ready state
@@ -174,7 +175,7 @@ class asyncHTTPrequest {
 
     // request and response String buffers and header list (same queue for request and response).   
 
-    String*     _request;                       // Tx data buffer 
+    xbuf*       _request;                       // Tx data buffer 
 	xbuf*       _response;                      // Rx data buffer for headers
     header*     _headers;                       // request or (readyState > readyStateHdrsRcvd) response headers    
 
@@ -183,7 +184,7 @@ class asyncHTTPrequest {
     header*     _addHeader(const char*, const char*);
     header*     _getHeader(const char*);
     header*     _getHeader(int);
-    bool        _buildRequest(const char*);
+    bool        _buildRequest(const uint8_t*, size_t);
     int         _strcmp_ci(const char*, const char*);
     bool        _parseURL(const char*);
     bool        _parseURL(String);

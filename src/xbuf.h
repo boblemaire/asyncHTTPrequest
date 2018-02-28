@@ -33,7 +33,9 @@ class xbuf {
         ~xbuf();
 
         size_t      write(const uint8_t);
+        size_t      write(const char*);
         size_t      write(const uint8_t*, size_t);
+        size_t      write(String);
         uint8_t     read();
         size_t      read(uint8_t*, size_t);
         size_t      available();

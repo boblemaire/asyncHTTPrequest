@@ -84,7 +84,7 @@ void	asyncHTTPrequest::setTimeout(int seconds){
 //**************************************************************************************************************
 bool	asyncHTTPrequest::send(){
     DEBUG_HTTP("send()\r\n");
-    if( ! _buildRequest("")) return false;
+    if( ! _buildRequest((uint8_t*)nullptr , 0)) return false;
     _send();
     return true;
 }
@@ -92,7 +92,7 @@ bool	asyncHTTPrequest::send(){
 //**************************************************************************************************************
 bool    asyncHTTPrequest::send(String body){
     DEBUG_HTTP("send(String) %s... (%d)\r\n", body.substring(0,16).c_str(), body.length());
-    if( ! _buildRequest(body.c_str())) return false;
+    if( ! _buildRequest((uint8_t*)body.c_str(), body.length())) return false;
     _send();
     return true;
 }
@@ -100,7 +100,15 @@ bool    asyncHTTPrequest::send(String body){
 //**************************************************************************************************************
 bool	asyncHTTPrequest::send(const char* body){
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n",body, strlen(body));
-    if( ! _buildRequest(body)) return false;
+    if( ! _buildRequest((uint8_t*)body, strlen(body))) return false;
+    _send();
+    return true;
+}
+
+//**************************************************************************************************************
+bool	asyncHTTPrequest::send(const uint8_t* body, size_t len){
+    DEBUG_HTTP("send(char*) %s.16... (%d)\r\n",(char*)body, len);
+    if( ! _buildRequest(body, len)) return false;
     _send();
     return true;
 }
@@ -265,57 +273,35 @@ bool  asyncHTTPrequest::_connect(){
 }
 
 //**************************************************************************************************************
-bool   asyncHTTPrequest::_buildRequest(const char *body){
+bool   asyncHTTPrequest::_buildRequest(const uint8_t* body, size_t len){
     DEBUG_HTTP("_buildRequest()\r\n");
-    if(strlen(body)){
-        _addHeader("Content-Length", String(strlen(body)).c_str());
-    }
-
-            //  Compute size of header
-
-    int headerSize = _HTTPmethod == HTTPmethodGET ? 4 : 5;
-    headerSize += strlen(_URL->scheme) + 
-                  strlen(_URL->host) + 
-                  strlen(_URL->path) +
-                  strlen(_URL->query) + 12;
-    header* hdr = _headers;
-    while(hdr){
-        headerSize += strlen(hdr->name) + 1 + strlen(hdr->value) + 2;
-        hdr = hdr->next;
-    }
-    headerSize += 2;
-    
-            // Create a String buffer and reserve space.
-
-    _request = new String;
-    if( ! _request->reserve(headerSize + strlen(body))){
-        DEBUG_HTTP("!no memory to build request, avail %d, reqd %d\r\n", ESP.getFreeHeap(), headerSize + strlen(body));
-        _HTTPcode = HTTPCODE_TOO_LESS_RAM;
-        return false;
+    if(len > 0){
+        _addHeader("Content-Length", String(len).c_str());
     }
 
         // Build the header.
 
-    *_request += String((_HTTPmethod == HTTPmethodGET) ? "GET " : "POST ");
-    *_request += _URL->scheme;
-    *_request += _URL->host;
-    *_request += _URL->path;
-    *_request += _URL->query;
-    *_request += " HTTP/1.1\r\n";
-    hdr = _headers;
+    _request = new xbuf;
+    _request->write(_HTTPmethod == HTTPmethodGET ? "GET " : "POST ");
+    _request->write(_URL->scheme);
+    _request->write(_URL->host);
+    _request->write(_URL->path);
+    _request->write(_URL->query);
+    _request->write(" HTTP/1.1\r\n");
+    header* hdr = _headers;
     while(hdr){
-        *_request += hdr->name;
-        *_request += ':';
-        *_request += hdr->value;
-        *_request += "\r\n";
+        _request->write(hdr->name);
+        _request->write(':');
+        _request->write(hdr->value);
+        _request->write("\r\n");
         hdr = hdr->next;
     }
     delete _headers;
     _headers = nullptr;
-    *_request += "\r\n";
+    _request->write("\r\n");
 
-    if(strlen(body)){
-        *_request += body;
+    if(len > 0){
+        _request->write(body, len);
     }
     return true;
 }
@@ -323,22 +309,27 @@ bool   asyncHTTPrequest::_buildRequest(const char *body){
 //**************************************************************************************************************
 size_t  asyncHTTPrequest::_send(){
     if( ! _request) return 0;
-    DEBUG_HTTP("_send() %d\r\n", _request->length());
-    size_t supply = _request->length();
-    if( ! _client->connected() || ! _client->canSend() || supply == 0){
+    DEBUG_HTTP("_send() %d\r\n", _request->available());
+    if( ! _client->connected() || ! _client->canSend()){
         DEBUG_HTTP("*can't send\r\n");
         return 0;
     }
+    size_t supply = _request->available();
     size_t demand = _client->space();
     if(supply > demand) supply = demand;
-    size_t sent = _client->write(_request->c_str(), supply);
-    if(_request->length() == sent){
+    size_t sent = 0;
+    uint8_t* temp = new uint8_t[100];
+    while(supply){
+        size_t chunk = supply < 100 ? supply : 100;
+        supply -= _request->read(temp, chunk);
+        sent += _client->add((char*)temp, chunk);
+    }
+    delete temp;
+    if(_request->available() == 0){
         delete _request;
         _request = nullptr;
     }
-    else {
-        _request->remove(0, sent);
-    }
+    _client->send();
     DEBUG_HTTP("*sent %d\r\n", sent);
     _lastActivity = millis(); 
     return sent;
