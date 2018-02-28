@@ -32,6 +32,7 @@
 #include <Arduino.h>
 #include <ESPasyncTCP.h>
 #include <pgmspace.h>
+#include <xbuf.h>
 
 #define DEBUG_HTTP(format,...)  if(_debug){\
                                     DEBUG_IOTA_PORT.printf("Debug(%3d): ", millis()-_requestStartTime);\
@@ -139,7 +140,6 @@ class asyncHTTPrequest {
     size_t  responseLength();                                       // indicated response length or sum of chunks to date     
     int     responseHTTPcode();                                     // HTTP response code or (negative) error code
     String  responseText();                                         // response (whole* or partial* as string)
-    String* responseStringPtr();                                    // response (whole* or partial* as String*)
     size_t  responseRead(uint8_t* buffer, size_t len);              // Read response into buffer
     uint32_t elapsedTime();                                         // Elapsed time of in progress transaction or last completed (ms)                                                                // Note, caller takes posession, responsible for delete
 //___________________________________________________________________________________________________________________________________
@@ -175,7 +175,7 @@ class asyncHTTPrequest {
     // request and response String buffers and header list (same queue for request and response).   
 
     String*     _request;                       // Tx data buffer 
-	String*     _response;                      // Rx data buffer 
+	xbuf*       _response;                      // Rx data buffer for headers
     header*     _headers;                       // request or (readyState > readyStateHdrsRcvd) response headers    
 
     // Protected functions
@@ -187,6 +187,7 @@ class asyncHTTPrequest {
     int         _strcmp_ci(const char*, const char*);
     bool        _parseURL(const char*);
     bool        _parseURL(String);
+    void        _getChunkHeader();
     bool        _connect();
     size_t      _send();
     void        _setReadyState(readyStates);
