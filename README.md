@@ -36,6 +36,8 @@ See the Wiki for an explanation of the various methods.
 
 Following is a snippet of code using this library, along with a sample of the debug output trace from normal operation.  The context is that this code is in a process that runs as a state machine to post data to an external server. Suffice it to say that none of the calls block, and that the program does other things while waiting for the readyState to become 4.
 
+There are a few different methods available to synchronize on completion and to extract the resonse data, especially long responses.  This is a simpler example.
+
 ```
   asyncHTTPrequest request;
 	.
