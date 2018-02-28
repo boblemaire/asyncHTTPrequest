@@ -96,8 +96,7 @@ Debug(190): _onConnect handler
 Debug(190): _setReadyState(1)
 Debug(191): _send() 230
 Debug(191): *sent 230
-Debug(312): _onData handler HTTP/1.1 200 OK
-... (198)
+Debug(312): _onData handler HTTP/1.1 200 OK... (198)
 Debug(313): _collectHeaders()
 Debug(315): _setReadyState(2)
 Debug(315): _setReadyState(3)
