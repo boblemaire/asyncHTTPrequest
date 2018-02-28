@@ -17,7 +17,7 @@ This library adds a simple HTTP layer on top of the ESPAsyncTCP library to facil
 
 Synchronization can be accomplished using callbacks on ready-state change, a callback on data receipt, or simply polling for ready-state change. Data retrieval can be incremental as received, or bulk retrieved when the transaction completes provided there is enough heap to buffer the entire response.
 
-The underlying buffering uses the String class. It was designed for character string data, but being mindful of a few potential pitfalls, should be able to return binary data.
+The underlying buffering uses the String class for the request and a new xbuf class for the response. It handles both character and binary response data. xbuf uses a chain of small (64 byte) segments that are allocated and added to the tail as data is added and deallocated from the head as data is read, achieving the same result as a dynamic circular buffer limited only by the size of heap. The xbuf impliments indexOf and readUntil functions.
 
 For short transactions, buffer space should not be an issue. In fact, it can be more economical than other methods that use larger fixed length buffers. Data is acked when retrieved by the caller, so there is some limited flow control to limit heap usage for larger transfers.
 
@@ -25,7 +25,7 @@ Request and response headers are handled in the typical fashion.
 
 Chunked responses are recognized and handled transparently.
 
-Testing has not been extensive, but it is a fairly lean library, and all of the functions were tested to some degree. It is working flawlessly in application for which it was designed.
+Testing has not been extensive, but it is a fairly lean library, and all of the functions were tested to some degree. It is working flawlessly in the application for which it was designed.
 
 Possibly I'll revisit this in the future and add support for additional HTTP request types like PUT.
 
