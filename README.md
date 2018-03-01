@@ -105,5 +105,5 @@ Debug(315): _setReadyState(3)
 Debug(315): *all data received - closing TCP
 Debug(319): _onDisconnect handler
 Debug(321): _setReadyState(4)
-Debug(921): responseText() Debug(921): responseText() ok... (2)
+Debug(921): responseText() ok... (2)
 ```
