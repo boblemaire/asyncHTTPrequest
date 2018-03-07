@@ -30,7 +30,7 @@
 #endif
 
 #include <Arduino.h>
-#include <ESPasyncTCP.h>
+#include <ESPAsyncTCP.h>
 #include <pgmspace.h>
 #include <xbuf.h>
 
