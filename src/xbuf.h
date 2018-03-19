@@ -26,7 +26,7 @@ struct xseg {
     ~xseg(){}
 };
 
-class xbuf {
+class xbuf: public Print {
     public:
 
         xbuf();
@@ -35,6 +35,7 @@ class xbuf {
         size_t      write(const uint8_t);
         size_t      write(const char*);
         size_t      write(const uint8_t*, size_t);
+        size_t      write(xbuf*, size_t);
         size_t      write(String);
         uint8_t     read();
         size_t      read(uint8_t*, size_t);
@@ -44,6 +45,7 @@ class xbuf {
         String      readStringUntil(const char);
         String      readStringUntil(const char*);
         String      readString(int);
+        String      peekString(int);
         void        flush();
 
     protected:

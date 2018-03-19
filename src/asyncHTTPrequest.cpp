@@ -84,7 +84,7 @@ void	asyncHTTPrequest::setTimeout(int seconds){
 //**************************************************************************************************************
 bool	asyncHTTPrequest::send(){
     DEBUG_HTTP("send()\r\n");
-    if( ! _buildRequest((uint8_t*)nullptr , 0)) return false;
+    if( ! _buildRequest()) return false;
     _send();
     return true;
 }
@@ -92,7 +92,9 @@ bool	asyncHTTPrequest::send(){
 //**************************************************************************************************************
 bool    asyncHTTPrequest::send(String body){
     DEBUG_HTTP("send(String) %s... (%d)\r\n", body.substring(0,16).c_str(), body.length());
-    if( ! _buildRequest((uint8_t*)body.c_str(), body.length())) return false;
+    _addHeader("Content-Length", String(body.length()).c_str());
+    if( ! _buildRequest()) return false;
+    _request->write(body);
     _send();
     return true;
 }
@@ -100,7 +102,9 @@ bool    asyncHTTPrequest::send(String body){
 //**************************************************************************************************************
 bool	asyncHTTPrequest::send(const char* body){
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n",body, strlen(body));
-    if( ! _buildRequest((uint8_t*)body, strlen(body))) return false;
+    _addHeader("Content-Length", String(strlen(body)).c_str());
+    if( ! _buildRequest()) return false;
+    _request->write(body);
     _send();
     return true;
 }
@@ -108,7 +112,19 @@ bool	asyncHTTPrequest::send(const char* body){
 //**************************************************************************************************************
 bool	asyncHTTPrequest::send(const uint8_t* body, size_t len){
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n",(char*)body, len);
-    if( ! _buildRequest(body, len)) return false;
+    _addHeader("Content-Length", String(len).c_str());
+    if( ! _buildRequest()) return false;
+    _request->write(body, len);
+    _send();
+    return true;
+}
+
+//**************************************************************************************************************
+bool	asyncHTTPrequest::send(xbuf* body, size_t len){
+    DEBUG_HTTP("send(char*) %s.16... (%d)\r\n", body->peekString(16).c_str(), len);
+    _addHeader("Content-Length", String(len).c_str());
+    if( ! _buildRequest()) return false;
+    _request->write(body, len);
     _send();
     return true;
 }
@@ -273,12 +289,9 @@ bool  asyncHTTPrequest::_connect(){
 }
 
 //**************************************************************************************************************
-bool   asyncHTTPrequest::_buildRequest(const uint8_t* body, size_t len){
+bool   asyncHTTPrequest::_buildRequest(){
     DEBUG_HTTP("_buildRequest()\r\n");
-    if(len > 0){
-        _addHeader("Content-Length", String(len).c_str());
-    }
-
+    
         // Build the header.
 
     _request = new xbuf;
@@ -300,9 +313,6 @@ bool   asyncHTTPrequest::_buildRequest(const uint8_t* body, size_t len){
     _headers = nullptr;
     _request->write("\r\n");
 
-    if(len > 0){
-        _request->write(body, len);
-    }
     return true;
 }
 
@@ -365,7 +375,7 @@ void  asyncHTTPrequest::_getChunkHeader(){
         String chunkHeader = _response->readStringUntil("\r\n");
         
         if(chunkHeader.length() > 2){
-            DEBUG_HTTP("_getChunkHeader() %s.16... (%d)\r\n", chunkHeader.c_str(), chunkHeader.length());
+            DEBUG_HTTP("_getChunkHeader() %.16s... (%d)\r\n", chunkHeader.c_str(), chunkHeader.length());
             size_t chunkLength = strtol(chunkHeader.c_str(),nullptr,16);
             _contentLength += chunkLength;
             if(chunkLength == 0){
@@ -427,7 +437,7 @@ void  asyncHTTPrequest::_onDisconnect(AsyncClient* client){
         _HTTPcode = HTTPCODE_NOT_CONNECTED;
     }
     else if (_HTTPcode > 0 && 
-            (_readyState != readyStateLoading || (_contentRead + _response->available()) < _contentLength)) {
+            (_readyState < readyStateHdrsRecvd || (_contentRead + _response->available()) < _contentLength)) {
         _HTTPcode = HTTPCODE_CONNECTION_LOST;
     }
     delete _client;

@@ -15,17 +15,17 @@ xbuf::~xbuf(){
 
 //*******************************************************************************************************************
 size_t      xbuf::write(const uint8_t byte){
-    write((uint8_t*) &byte, 1);
+    return write((uint8_t*) &byte, 1);
 }
 
 //*******************************************************************************************************************
 size_t      xbuf::write(const char* buf){
-    write((uint8_t*)buf, strlen(buf));
+    return write((uint8_t*)buf, strlen(buf));
 }
 
 //*******************************************************************************************************************
 size_t      xbuf::write(String string){
-    write((uint8_t*)string.c_str(), string.length());
+    return write((uint8_t*)string.c_str(), string.length());
 }
 
 //*******************************************************************************************************************
@@ -41,6 +41,23 @@ size_t      xbuf::write(const uint8_t* buf, const size_t len){
         _used += demand;
         supply -= demand;
     }
+    return len;
+}
+
+//*******************************************************************************************************************
+size_t      xbuf::write(xbuf* buf, const size_t len){
+    size_t supply = len;
+    while(supply){
+        if(!_free){
+            addSeg();
+        }
+        size_t demand = _free < supply ? _free : supply;
+        buf->read(_tail->data + ((_offset + _used) % SEGMENT_SIZE), demand);
+        _free -= demand;
+        _used += demand;
+        supply -= demand;
+    }
+    return len;
 }
 
 //*******************************************************************************************************************
@@ -149,6 +166,26 @@ String      xbuf::readString(int endPos){
             _used--;
             if(_offset >= SEGMENT_SIZE){
                 remSeg();
+            }
+        }
+    }   
+    return result;
+}
+
+//*******************************************************************************************************************
+String      xbuf::peekString(int endPos){
+    String result;
+    xseg* seg = _head;
+    size_t offset = _offset;
+    if(endPos > _used){
+        endPos = _used;
+    }
+    if(endPos > 0 && result.reserve(endPos+1)){
+        while(endPos--){
+            result += (char)seg->data[offset++];
+            if( offset >= SEGMENT_SIZE){
+                seg = seg->next;
+                offset = 0;
             }
         }
     }   
