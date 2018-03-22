@@ -68,6 +68,13 @@ uint8_t     xbuf::read(){
 }
 
 //*******************************************************************************************************************
+uint8_t     xbuf::peek(){
+    uint8_t byte = 0;
+    peek((uint8_t*) &byte, 1);
+    return byte;
+}
+
+//*******************************************************************************************************************
 size_t      xbuf::read(uint8_t* buf, size_t len){
     size_t read = 0;
     while(read < len && _used){
@@ -88,6 +95,28 @@ size_t      xbuf::read(uint8_t* buf, size_t len){
     }
     return read;
 
+}
+
+//*******************************************************************************************************************
+size_t      xbuf::peek(uint8_t* buf, size_t len){
+    size_t read = 0;
+    xseg* seg = _head;
+    size_t offset = _offset;
+    size_t used = _used;
+    while(read < len && used){
+        size_t supply = (offset + used) > SEGMENT_SIZE ? SEGMENT_SIZE - offset : used;
+        size_t demand = len - read;
+        size_t chunk = supply < demand ? supply : demand;
+        memcpy(buf + read, seg->data + offset, chunk);
+        offset += chunk;
+        used -= chunk;
+        read += chunk;
+        if(offset == SEGMENT_SIZE){
+            seg = seg->next;
+            offset = 0;        
+        }
+    }
+    return read;
 }
 
 //*******************************************************************************************************************
