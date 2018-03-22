@@ -11,6 +11,7 @@ asyncHTTPrequest::asyncHTTPrequest()
     ,_client(nullptr)
     ,_request(nullptr)
     ,_response(nullptr)
+    ,_chunks(nullptr)
     ,_readyStateChangeCB(nullptr)
     ,_onDataCB(nullptr)
     ,_lastActivity(0)
@@ -23,10 +24,7 @@ asyncHTTPrequest::~asyncHTTPrequest(){
     delete _headers;
     delete _request;
     delete _response;
-    _URL = nullptr;
-    _headers = nullptr;
-    _request = nullptr;
-    _response = nullptr;
+    delete _chunks;
 }
 
 //**************************************************************************************************************
@@ -52,10 +50,12 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
     delete _headers;
     delete _request;
     delete _response;
+    delete _chunks;
     _URL = nullptr;
     _headers = nullptr;
     _response = nullptr;
     _request = nullptr;
+    _chunks = nullptr;
     _contentRead = 0;
     _readyState = readyStateUnsent;
 
@@ -166,9 +166,6 @@ String	asyncHTTPrequest::responseText(){
         _client->ack(_notAcked);    
     }
     _notAcked = 0;
-    if(_chunked && (_contentRead == _contentLength)){
-        _getChunkHeader();
-    }
     DEBUG_HTTP("responseText() %s... (%d)\r\n", localString.substring(0,16).c_str() , avail);
     return localString;
 }
@@ -188,9 +185,6 @@ size_t  asyncHTTPrequest::responseRead(uint8_t* buf, size_t len){
         _client->ack(toAck); 
     }
     _notAcked -= toAck;
-    if(_chunked && (_contentRead == _contentLength)){
-        _getChunkHeader();
-    }
     return avail;
 }
 
@@ -370,19 +364,23 @@ int asyncHTTPrequest::_strcmp_ci(const char* str1, const char* str2){
 }
 
 //**************************************************************************************************************
-void  asyncHTTPrequest::_getChunkHeader(){
-    while(_response->indexOf("\r\n") != -1){
-        String chunkHeader = _response->readStringUntil("\r\n");
-        
-        if(chunkHeader.length() > 2){
-            DEBUG_HTTP("_getChunkHeader() %.16s... (%d)\r\n", chunkHeader.c_str(), chunkHeader.length());
-            size_t chunkLength = strtol(chunkHeader.c_str(),nullptr,16);
-            _contentLength += chunkLength;
-            if(chunkLength == 0){
-                DEBUG_HTTP("*all chunks received - closing TCP\r\n");
-                _client->close();
+void  asyncHTTPrequest::_processChunks(){
+    while(_chunks->available()){
+        DEBUG_HTTP("_processChunks() %.16s... (%d)\r\n", _chunks->peekString(16).c_str(), _chunks->available());
+        size_t _chunkRemaining = _contentLength - _contentRead - _response->available();
+        _chunkRemaining -= _response->write(_chunks, _chunkRemaining);
+        while(_chunks->indexOf("\r\n") != -1){
+            String chunkHeader = _chunks->readStringUntil("\r\n");
+            if(chunkHeader.length() > 2){
+                DEBUG_HTTP("*getChunkHeader %.16s... (%d)\r\n", chunkHeader.c_str(), chunkHeader.length());
+                size_t chunkLength = strtol(chunkHeader.c_str(),nullptr,16);
+                _contentLength += chunkLength;
+                if(chunkLength == 0){
+                    DEBUG_HTTP("*all chunks received - closing TCP\r\n");
+                    _client->close();
+                }
+                break;
             }
-            break;
         }
     }
 }
@@ -422,6 +420,9 @@ void  asyncHTTPrequest::_onPoll(AsyncClient* client){
         _client->close();
         _HTTPcode = HTTPCODE_TIMEOUT;
     }
+    if(_onDataCB && available()){
+        _onDataCB(_onDataCBarg, this, available());
+    }      
 }
 
 //**************************************************************************************************************
@@ -456,7 +457,13 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
 
                 // Transfer data to xbuf
 
-    _response->write((uint8_t*)Vbuf, len);                
+    if(_chunks){
+        _chunks->write((uint8_t*)Vbuf, len);
+        _processChunks();
+    }
+    else {
+        _response->write((uint8_t*)Vbuf, len);                
+    }
 
                 // if headers not complete, collect them.
                 // if still not complete, just return.
@@ -477,13 +484,6 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
     if( ! _chunked && (_response->available() + _contentRead) >= _contentLength){
         DEBUG_HTTP("*all data received - closing TCP\r\n");
         _client->close();
-    }
-
-                // if chunked and out of data,
-                // try to get the next chunk header.
-
-    if(_chunked && _contentLength <= _contentRead){
-        _getChunkHeader();
     }
 
                 // If onData callback requested, do so.
@@ -550,7 +550,9 @@ bool  asyncHTTPrequest::_collectHeaders(){
         DEBUG_HTTP("*transfer-encoding: chunked\r\n");
         _chunked = true;
         _contentLength = 0;
-        _getChunkHeader();
+        _chunks = new xbuf;
+        _chunks->write(_response, _response->available());
+        _processChunks();
     }         
 
     

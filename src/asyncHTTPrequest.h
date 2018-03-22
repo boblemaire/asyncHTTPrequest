@@ -178,6 +178,7 @@ class asyncHTTPrequest {
 
     xbuf*       _request;                       // Tx data buffer 
 	xbuf*       _response;                      // Rx data buffer for headers
+    xbuf*       _chunks;                        // First stage for chunked response    
     header*     _headers;                       // request or (readyState > readyStateHdrsRcvd) response headers    
 
     // Protected functions
@@ -189,7 +190,7 @@ class asyncHTTPrequest {
     int         _strcmp_ci(const char*, const char*);
     bool        _parseURL(const char*);
     bool        _parseURL(String);
-    void        _getChunkHeader();
+    void        _processChunks();
     bool        _connect();
     size_t      _send();
     void        _setReadyState(readyStates);

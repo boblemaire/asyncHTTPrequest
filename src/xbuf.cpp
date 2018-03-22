@@ -47,17 +47,21 @@ size_t      xbuf::write(const uint8_t* buf, const size_t len){
 //*******************************************************************************************************************
 size_t      xbuf::write(xbuf* buf, const size_t len){
     size_t supply = len;
+    if(supply > buf->available()){
+        supply = buf->available();
+    }
+    size_t read = 0;
     while(supply){
         if(!_free){
             addSeg();
         }
         size_t demand = _free < supply ? _free : supply;
-        buf->read(_tail->data + ((_offset + _used) % SEGMENT_SIZE), demand);
+        read += buf->read(_tail->data + ((_offset + _used) % SEGMENT_SIZE), demand);
         _free -= demand;
         _used += demand;
         supply -= demand;
     }
-    return len;
+    return read;
 }
 
 //*******************************************************************************************************************
@@ -134,7 +138,7 @@ int      xbuf::indexOf(const char target, const size_t begin){
 //*******************************************************************************************************************
 int      xbuf::indexOf(const char* target, const size_t begin){
     size_t targetLen = strlen(target);
-    if(targetLen > SEGMENT_SIZE) return -1;
+    if(targetLen > SEGMENT_SIZE || targetLen > _used) return -1;
     size_t searchPos = _offset + begin;
     size_t searchEnd = _offset + _used - targetLen;
     if(searchPos > searchEnd) return -1;
