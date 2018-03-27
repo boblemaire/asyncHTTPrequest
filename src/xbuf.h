@@ -26,33 +26,31 @@
     1) A buffer can work fine in a fragmented heap environment (admittedly contributing to it)
     2) xbuf contents can be copied from one buffer to another without the need for 
        2x heap during the copy.
+    The segment size defaults to 64 but can be dynamically set in the constructor at creation.   
     The inclusion of indexOf and read/peek until functions make it useful for handling
     data streams like HTTP, and in fact is why it was created.
 
-    NOTE: The size of the indexOf() search string is limited to SEGMENT_SIZE. 
+    NOTE: The size of the indexOf() search string is limited to the segment size.
           It could be extended but didn't seem to be a practical consideration.    
    
 ***********************************************************************************/
 #include <Arduino.h>
-#define SEGMENT_SIZE 64
 
 struct xseg {
     xseg    *next;
-    uint8_t data[SEGMENT_SIZE];
-    xseg():next(nullptr){}
-    ~xseg(){}
+    uint8_t data[];
 };
 
 class xbuf: public Print {
     public:
 
-        xbuf();
+        xbuf(const uint16_t segSize=64);
         ~xbuf();
 
         size_t      write(const uint8_t);
         size_t      write(const char*);
-        size_t      write(const uint8_t*, size_t);
-        size_t      write(xbuf*, size_t);
+        size_t      write(const uint8_t*, const size_t);
+        size_t      write(xbuf*, const size_t);
         size_t      write(String);
         size_t      available();
         int         indexOf(const char, const size_t begin=0);
@@ -66,7 +64,7 @@ class xbuf: public Print {
         void        flush();
 
         uint8_t     peek();
-        size_t      peek(uint8_t*, size_t);
+        size_t      peek(uint8_t*, const size_t);
         String      peekStringUntil(const char target) {return peekString(indexOf(target, 0));}
         String      peekStringUntil(const char* target) {return peekString(indexOf(target, 0));}
         String      peekString() {return peekString(_used);}
@@ -107,9 +105,10 @@ class xbuf: public Print {
 
         xseg        *_head;
         xseg        *_tail;
-        size_t      _offset;
-        size_t      _used;
-        size_t      _free;
+        uint16_t     _used;
+        uint16_t     _free;
+        uint16_t     _offset;
+        uint16_t     _segSize;
 
         void        addSeg();
         void        remSeg();

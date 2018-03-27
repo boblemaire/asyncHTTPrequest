@@ -1,12 +1,13 @@
 #include <xbuf.h>
 
-xbuf::xbuf()
+xbuf::xbuf(const uint16_t segSize)
     :_offset(0)
+    ,_segSize(64)
     ,_used(0)
     ,_free(0)
     ,_head(0)
     ,_tail(0)
-    {  }
+    {_segSize = (segSize + 3) & -4;}     //((segSize + 3) >> 2) << 2;}
 
 //*******************************************************************************************************************
 xbuf::~xbuf(){
@@ -36,7 +37,7 @@ size_t      xbuf::write(const uint8_t* buf, const size_t len){
             addSeg();
         }
         size_t demand = _free < supply ? _free : supply;
-        memcpy(_tail->data + ((_offset + _used) % SEGMENT_SIZE), buf + (len - supply), demand);
+        memcpy(_tail->data + ((_offset + _used) % _segSize), buf + (len - supply), demand);
         _free -= demand;
         _used += demand;
         supply -= demand;
@@ -56,7 +57,7 @@ size_t      xbuf::write(xbuf* buf, const size_t len){
             addSeg();
         }
         size_t demand = _free < supply ? _free : supply;
-        read += buf->read(_tail->data + ((_offset + _used) % SEGMENT_SIZE), demand);
+        read += buf->read(_tail->data + ((_offset + _used) % _segSize), demand);
         _free -= demand;
         _used += demand;
         supply -= demand;
@@ -79,17 +80,17 @@ uint8_t     xbuf::peek(){
 }
 
 //*******************************************************************************************************************
-size_t      xbuf::read(uint8_t* buf, size_t len){
+size_t      xbuf::read(uint8_t* buf, const size_t len){
     size_t read = 0;
     while(read < len && _used){
-        size_t supply = (_offset + _used) > SEGMENT_SIZE ? SEGMENT_SIZE - _offset : _used;
+        size_t supply = (_offset + _used) > _segSize ? _segSize - _offset : _used;
         size_t demand = len - read;
         size_t chunk = supply < demand ? supply : demand;
         memcpy(buf + read, _head->data + _offset, chunk);
         _offset += chunk;
         _used -= chunk;
         read += chunk;
-        if(_offset == SEGMENT_SIZE){
+        if(_offset == _segSize){
             remSeg();
             _offset = 0;        
         }
@@ -102,20 +103,20 @@ size_t      xbuf::read(uint8_t* buf, size_t len){
 }
 
 //*******************************************************************************************************************
-size_t      xbuf::peek(uint8_t* buf, size_t len){
+size_t      xbuf::peek(uint8_t* buf, const size_t len){
     size_t read = 0;
     xseg* seg = _head;
     size_t offset = _offset;
     size_t used = _used;
     while(read < len && used){
-        size_t supply = (offset + used) > SEGMENT_SIZE ? SEGMENT_SIZE - offset : used;
+        size_t supply = (offset + used) > _segSize ? _segSize - offset : used;
         size_t demand = len - read;
         size_t chunk = supply < demand ? supply : demand;
         memcpy(buf + read, seg->data + offset, chunk);
         offset += chunk;
         used -= chunk;
         read += chunk;
-        if(offset == SEGMENT_SIZE){
+        if(offset == _segSize){
             seg = seg->next;
             offset = 0;        
         }
@@ -138,26 +139,26 @@ int      xbuf::indexOf(const char target, const size_t begin){
 //*******************************************************************************************************************
 int      xbuf::indexOf(const char* target, const size_t begin){
     size_t targetLen = strlen(target);
-    if(targetLen > SEGMENT_SIZE || targetLen > _used) return -1;
+    if(targetLen > _segSize || targetLen > _used) return -1;
     size_t searchPos = _offset + begin;
     size_t searchEnd = _offset + _used - targetLen;
     if(searchPos > searchEnd) return -1;
-    size_t searchSeg = searchPos / SEGMENT_SIZE;
+    size_t searchSeg = searchPos / _segSize;
     xseg* seg = _head;
     while(searchSeg){
         seg = seg->next;
         searchSeg --;
     }
-    size_t segPos = searchPos % SEGMENT_SIZE;
+    size_t segPos = searchPos % _segSize;
     while(searchPos <= searchEnd){
         size_t compLen = targetLen;
-        if(compLen <= (SEGMENT_SIZE - segPos)){
+        if(compLen <= (_segSize - segPos)){
             if(memcmp(target,seg->data+segPos,compLen) == 0){
                 return searchPos - _offset;
             }
         }
         else {
-            size_t compLen = SEGMENT_SIZE - segPos;
+            size_t compLen = _segSize - segPos;
             if(memcmp(target,seg->data+segPos,compLen) == 0){
                 compLen = targetLen - compLen;
                 if(memcmp(target+targetLen-compLen, seg->next->data, compLen) == 0){
@@ -167,7 +168,7 @@ int      xbuf::indexOf(const char* target, const size_t begin){
         }
         searchPos++;
         segPos++;
-        if(segPos == SEGMENT_SIZE){
+        if(segPos == _segSize){
             seg = seg->next;
             segPos = 0;
         } 
@@ -197,7 +198,7 @@ String      xbuf::readString(int endPos){
         while(endPos--){
             result += (char)_head->data[_offset++];
             _used--;
-            if(_offset >= SEGMENT_SIZE){
+            if(_offset >= _segSize){
                 remSeg();
             }
         }
@@ -216,7 +217,7 @@ String      xbuf::peekString(int endPos){
     if(endPos > 0 && result.reserve(endPos+1)){
         while(endPos--){
             result += (char)seg->data[offset++];
-            if( offset >= SEGMENT_SIZE){
+            if( offset >= _segSize){
                 seg = seg->next;
                 offset = 0;
             }
@@ -237,20 +238,21 @@ void        xbuf::flush(){
 //*******************************************************************************************************************
 void        xbuf::addSeg(){
     if(_tail){
-        _tail->next = new xseg;
+        _tail->next = (xseg*) new uint32_t[_segSize / 4 + 1];
         _tail = _tail->next;
     }
     else {
-        _tail = _head = new xseg;
+        _tail = _head = (xseg*) new uint32_t[_segSize / 4 + 1];
     }
-    _free += SEGMENT_SIZE;
+    _tail->next = nullptr;
+    _free += _segSize;
 }
 
 //*******************************************************************************************************************
 void        xbuf::remSeg(){
     if(_head){
         xseg *next = _head->next;
-        delete _head;
+        delete[] (uint32_t*) _head;
         _head = next;
         if( ! _head){
             _tail = nullptr;
