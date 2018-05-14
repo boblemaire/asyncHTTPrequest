@@ -162,10 +162,6 @@ String	asyncHTTPrequest::responseText(){
     }
     localString = _response->readString(avail);
     _contentRead += localString.length();
-    if(_client){
-        _client->ack(_notAcked);    
-    }
-    _notAcked = 0;
     DEBUG_HTTP("responseText() %s... (%d)\r\n", localString.substring(0,16).c_str() , avail);
     return localString;
 }
@@ -180,11 +176,6 @@ size_t  asyncHTTPrequest::responseRead(uint8_t* buf, size_t len){
     _response->read(buf, avail);
     DEBUG_HTTP("responseRead() %.16s... (%d)\r\n", (char*)buf , avail);
     _contentRead += avail;
-    size_t toAck = available() ? avail : _notAcked;
-    if(_client){
-        _client->ack(toAck); 
-    }
-    _notAcked -= toAck;
     return avail;
 }
 
@@ -267,7 +258,7 @@ bool  asyncHTTPrequest::_parseURL(String url){
 //**************************************************************************************************************
 bool  asyncHTTPrequest::_connect(){
     DEBUG_HTTP("_connect()\r\n");
-    _client = new AsyncClient();
+     _client = new AsyncClient();
     _client->onConnect([](void *obj, AsyncClient *client){((asyncHTTPrequest*)(obj))->_onConnect(client);}, this);
     _client->onDisconnect([](void *obj, AsyncClient* client){((asyncHTTPrequest*)(obj))->_onDisconnect(client);}, this);
     _client->onPoll([](void *obj, AsyncClient *client){((asyncHTTPrequest*)(obj))->_onPoll(client);}, this);
@@ -402,7 +393,6 @@ void  asyncHTTPrequest::_onConnect(AsyncClient* client){
      _URL = nullptr;
     _setReadyState(readyStateOpened);
     _response = new xbuf;
-    _notAcked = 0;
     _contentLength = 0;
     _contentRead = 0;
     _chunked = false;
@@ -419,6 +409,7 @@ void  asyncHTTPrequest::_onPoll(AsyncClient* client){
     if(_timeout && (millis() - _lastActivity) > (_timeout * 1000)){
         _client->close();
         _HTTPcode = HTTPCODE_TIMEOUT;
+        DEBUG_HTTP("_onPoll timeout\r\n");
     }
     if(_onDataCB && available()){
         _onDataCB(_onDataCBarg, this, available());
@@ -452,9 +443,7 @@ void  asyncHTTPrequest::_onDisconnect(AsyncClient* client){
 void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
     DEBUG_HTTP("_onData handler %.16s... (%d)\r\n",(char*) Vbuf, len);
     _lastActivity = millis();
-    _client->ackLater(); 
-    _notAcked += len;
-
+    
                 // Transfer data to xbuf
 
     if(_chunks){

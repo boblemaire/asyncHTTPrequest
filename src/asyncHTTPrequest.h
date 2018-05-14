@@ -168,7 +168,6 @@ class asyncHTTPrequest {
     AsyncClient*    _client;                    // ESPAsyncTCP AsyncClient instance
     size_t          _contentLength;             // content-length header value or sum of chunk headers  
     size_t          _contentRead;               // number of bytes retrieved by user since last open()
-    size_t          _notAcked;                  // number of bytes not acked since last open()
     readyStateChangeCB  _readyStateChangeCB;    // optional callback for readyState change
     void*           _readyStateChangeCBarg;     // associated user argument
     onDataCB        _onDataCB;                  // optional callback when data received
