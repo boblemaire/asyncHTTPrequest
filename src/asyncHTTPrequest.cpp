@@ -267,6 +267,7 @@ bool  asyncHTTPrequest::_connect(){
     if( ! _client){
         _client = new AsyncClient();
     }
+    delete[] _connectedHost;	
     _connectedHost = new char[strlen(_URL->host) + 1];
     strcpy(_connectedHost, _URL->host);
     _connectedPort = _URL->port;
