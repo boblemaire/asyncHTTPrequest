@@ -165,6 +165,8 @@ class asyncHTTPrequest {
     uint32_t        _requestStartTime;          // Time last open() issued
     uint32_t        _requestEndTime;            // Time of last disconnect
     URL*            _URL;                       // -> URL data structure
+    char*           _connectedHost;             // Host when connected
+    int             _connectedPort;             // Port when connected
     AsyncClient*    _client;                    // ESPAsyncTCP AsyncClient instance
     size_t          _contentLength;             // content-length header value or sum of chunk headers  
     size_t          _contentRead;               // number of bytes retrieved by user since last open()
@@ -186,7 +188,6 @@ class asyncHTTPrequest {
     header*     _getHeader(const char*);
     header*     _getHeader(int);
     bool        _buildRequest();
-    int         _strcmp_ci(const char*, const char*);
     bool        _parseURL(const char*);
     bool        _parseURL(String);
     void        _processChunks();

@@ -14,17 +14,21 @@ asyncHTTPrequest::asyncHTTPrequest()
     ,_chunks(nullptr)
     ,_readyStateChangeCB(nullptr)
     ,_onDataCB(nullptr)
+    ,_chunked(false)
     ,_lastActivity(0)
+    ,_connectedHost(nullptr)
+    ,_connectedPort(-1)
     {DEBUG_HTTP("New request.");}
 
 //**************************************************************************************************************
 asyncHTTPrequest::~asyncHTTPrequest(){
-    if(_client) _client->abort();
+    if(_client) _client->close(true);
     delete _URL;
     delete _headers;
     delete _request;
     delete _response;
     delete _chunks;
+    delete[] _connectedHost;
 }
 
 //**************************************************************************************************************
@@ -56,6 +60,7 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
     _response = nullptr;
     _request = nullptr;
     _chunks = nullptr;
+    _chunked = false;
     _contentRead = 0;
     _readyState = readyStateUnsent;
 
@@ -64,10 +69,11 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
 	else return false;
 
     if( ! _parseURL(URL)){return false;}
+    if( _client && _client->connected() && 
+      (strcmp(_URL->host, _connectedHost) != 0 || _URL->port != _connectedPort)){return false;}
     _addHeader("host",_URL->host);
     _lastActivity = millis();
 	return _connect();
-
 }
 //**************************************************************************************************************
 void    asyncHTTPrequest::onReadyStateChange(readyStateChangeCB cb, void* arg){
@@ -258,16 +264,26 @@ bool  asyncHTTPrequest::_parseURL(String url){
 //**************************************************************************************************************
 bool  asyncHTTPrequest::_connect(){
     DEBUG_HTTP("_connect()\r\n");
-     _client = new AsyncClient();
+    if( ! _client){
+        _client = new AsyncClient();
+    }
+    _connectedHost = new char[strlen(_URL->host) + 1];
+    strcpy(_connectedHost, _URL->host);
+    _connectedPort = _URL->port;
     _client->onConnect([](void *obj, AsyncClient *client){((asyncHTTPrequest*)(obj))->_onConnect(client);}, this);
     _client->onDisconnect([](void *obj, AsyncClient* client){((asyncHTTPrequest*)(obj))->_onDisconnect(client);}, this);
     _client->onPoll([](void *obj, AsyncClient *client){((asyncHTTPrequest*)(obj))->_onPoll(client);}, this);
     _client->onError([](void *obj, AsyncClient *client, uint32_t error){((asyncHTTPrequest*)(obj))->_onError(client, error);}, this);
-    if( ! _client->connect(_URL->host, _URL->port)) {
-        DEBUG_HTTP("!client.connect(%s, %d) failed\r\n", _URL->host, _URL->port);
-        _HTTPcode = HTTPCODE_NOT_CONNECTED;
-        _setReadyState(readyStateDone);
-        return false;
+    if( ! _client->connected()){
+        if( ! _client->connect(_URL->host, _URL->port)) {
+            DEBUG_HTTP("!client.connect(%s, %d) failed\r\n", _URL->host, _URL->port);
+            _HTTPcode = HTTPCODE_NOT_CONNECTED;
+            _setReadyState(readyStateDone);
+            return false;
+        }
+    }
+    else {
+        _onConnect(_client);
     }
     _lastActivity = millis();
     return true;
@@ -286,6 +302,8 @@ bool   asyncHTTPrequest::_buildRequest(){
     _request->write(_URL->path);
     _request->write(_URL->query);
     _request->write(" HTTP/1.1\r\n");
+    delete _URL;
+    _URL = nullptr;
     header* hdr = _headers;
     while(hdr){
         _request->write(hdr->name);
@@ -342,19 +360,6 @@ void  asyncHTTPrequest::_setReadyState(readyStates newState){
 }
 
 //**************************************************************************************************************
-int asyncHTTPrequest::_strcmp_ci(const char* str1, const char* str2){
-    const char* char1 = str1;
-    const char* char2 = str2;
-    while(*char1 || *char2){
-        if(*(char1++) != *(char2++)){
-            if(toupper(*(char1-1)) > toupper(*(char2-1))) return +1;
-            if(toupper(*(char1-1)) < toupper(*(char2-1))) return -1;
-        }
-    }
-    return 0;
-}
-
-//**************************************************************************************************************
 void  asyncHTTPrequest::_processChunks(){
     while(_chunks->available()){
         DEBUG_HTTP("_processChunks() %.16s... (%d)\r\n", _chunks->peekString(16).c_str(), _chunks->available());
@@ -367,8 +372,18 @@ void  asyncHTTPrequest::_processChunks(){
                 size_t chunkLength = strtol(chunkHeader.c_str(),nullptr,16);
                 _contentLength += chunkLength;
                 if(chunkLength == 0){
-                    DEBUG_HTTP("*all chunks received - closing TCP\r\n");
-                    _client->close();
+                    char* connectionHdr = respHeaderValue("connection");
+                    if(connectionHdr && (strcasecmp_P(connectionHdr,PSTR("disconnect")) == 0)){
+                        DEBUG_HTTP("*all chunks received - closing TCP\r\n");
+                        _client->close();
+                    }
+                    else {
+                       DEBUG_HTTP("*all chunks received - no disconnect\r\n"); 
+                    }
+                    _requestEndTime = millis();
+                    _lastActivity = 0;
+                    _timeout = 0;
+                    _setReadyState(readyStateDone);     
                 }
                 break;
             }
@@ -389,8 +404,6 @@ ________________________________________________________________________________
 void  asyncHTTPrequest::_onConnect(AsyncClient* client){
     DEBUG_HTTP("_onConnect handler\r\n");
     _client = client;
-    delete _URL;
-     _URL = nullptr;
     _setReadyState(readyStateOpened);
     _response = new xbuf;
     _contentLength = 0;
@@ -434,6 +447,9 @@ void  asyncHTTPrequest::_onDisconnect(AsyncClient* client){
     }
     delete _client;
     _client = nullptr;
+    delete[] _connectedHost;
+    _connectedHost = nullptr;
+    _connectedPort = -1;
     _requestEndTime = millis();
     _lastActivity = 0;
     _setReadyState(readyStateDone);
@@ -471,8 +487,18 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
                 // If not chunked and all data read, close it up.
 
     if( ! _chunked && (_response->available() + _contentRead) >= _contentLength){
-        DEBUG_HTTP("*all data received - closing TCP\r\n");
-        _client->close();
+        char* connectionHdr = respHeaderValue("connection");
+        if(connectionHdr && (strcasecmp_P(connectionHdr,PSTR("disconnect")) == 0)){
+            DEBUG_HTTP("*all data received - closing TCP\r\n");
+            _client->close();
+        }
+        else {
+            DEBUG_HTTP("*all data received - no disconnect\r\n");
+        }
+        _requestEndTime = millis();
+        _lastActivity = 0;
+        _timeout = 0;
+        _setReadyState(readyStateDone);        
     }
 
                 // If onData callback requested, do so.
@@ -535,7 +561,7 @@ bool  asyncHTTPrequest::_collectHeaders(){
             // If chunked specified, try to set _contentLength to size of first chunk
 
     hdr = _getHeader("Transfer-Encoding"); 
-    if(hdr && _strcmp_ci(hdr->value, "chunked") == 0){
+    if(hdr && strcasecmp_P(hdr->value, PSTR("chunked")) == 0){
         DEBUG_HTTP("*transfer-encoding: chunked\r\n");
         _chunked = true;
         _contentLength = 0;
@@ -633,7 +659,7 @@ String  asyncHTTPrequest::headers(){
 asyncHTTPrequest::header*  asyncHTTPrequest::_addHeader(const char* name, const char* value){
     header* hdr = (header*) &_headers;
     while(hdr->next) {
-        if(_strcmp_ci(name, hdr->next->name) == 0){
+        if(strcasecmp(name, hdr->next->name) == 0){
             header* oldHdr = hdr->next;
             hdr->next = hdr->next->next;
             oldHdr->next = nullptr;
@@ -655,7 +681,7 @@ asyncHTTPrequest::header*  asyncHTTPrequest::_addHeader(const char* name, const 
 asyncHTTPrequest::header* asyncHTTPrequest::_getHeader(const char* name){
     header* hdr = _headers;
     while (hdr) {
-        if(_strcmp_ci(name, hdr->name) == 0) break;
+        if(strcasecmp(name, hdr->name) == 0) break;
         hdr = hdr->next;
     }
     return hdr;
