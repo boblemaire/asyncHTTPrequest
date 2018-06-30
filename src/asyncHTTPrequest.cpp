@@ -366,28 +366,27 @@ void  asyncHTTPrequest::_processChunks(){
         DEBUG_HTTP("_processChunks() %.16s... (%d)\r\n", _chunks->peekString(16).c_str(), _chunks->available());
         size_t _chunkRemaining = _contentLength - _contentRead - _response->available();
         _chunkRemaining -= _response->write(_chunks, _chunkRemaining);
-        while(_chunks->indexOf("\r\n") != -1){
-            String chunkHeader = _chunks->readStringUntil("\r\n");
-            if(chunkHeader.length() > 2){
-                DEBUG_HTTP("*getChunkHeader %.16s... (%d)\r\n", chunkHeader.c_str(), chunkHeader.length());
-                size_t chunkLength = strtol(chunkHeader.c_str(),nullptr,16);
-                _contentLength += chunkLength;
-                if(chunkLength == 0){
-                    char* connectionHdr = respHeaderValue("connection");
-                    if(connectionHdr && (strcasecmp_P(connectionHdr,PSTR("disconnect")) == 0)){
-                        DEBUG_HTTP("*all chunks received - closing TCP\r\n");
-                        _client->close();
-                    }
-                    else {
-                       DEBUG_HTTP("*all chunks received - no disconnect\r\n"); 
-                    }
-                    _requestEndTime = millis();
-                    _lastActivity = 0;
-                    _timeout = 0;
-                    _setReadyState(readyStateDone);     
-                }
-                break;
+        if(_chunks->indexOf("\r\n") == -1){
+            return;
+        }
+        String chunkHeader = _chunks->readStringUntil("\r\n");
+        DEBUG_HTTP("*getChunkHeader %.16s... (%d)\r\n", chunkHeader.c_str(), chunkHeader.length());
+        size_t chunkLength = strtol(chunkHeader.c_str(),nullptr,16);
+        _contentLength += chunkLength;
+        if(chunkLength == 0){
+            char* connectionHdr = respHeaderValue("connection");
+            if(connectionHdr && (strcasecmp_P(connectionHdr,PSTR("disconnect")) == 0)){
+                DEBUG_HTTP("*all chunks received - closing TCP\r\n");
+                _client->close();
             }
+            else {
+                DEBUG_HTTP("*all chunks received - no disconnect\r\n"); 
+            }
+            _requestEndTime = millis();
+            _lastActivity = 0;
+            _timeout = 0;
+            _setReadyState(readyStateDone);
+            return;
         }
     }
 }
