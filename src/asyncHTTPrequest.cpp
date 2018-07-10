@@ -296,7 +296,7 @@ bool   asyncHTTPrequest::_buildRequest(){
     
         // Build the header.
 
-    _request = new xbuf;
+    if( ! _request) _request = new xbuf;
     _request->write(_HTTPmethod == HTTPmethodGET ? "GET " : "POST ");
     _request->write(_URL->scheme);
     _request->write(_URL->host);
@@ -586,14 +586,16 @@ ________________________________________________________________________________
 
 //**************************************************************************************************************
 void	asyncHTTPrequest::setReqHeader(const char* name, const char* value){
-    if(_readyState != readyStateUnsent) return;
-    _addHeader(name, value);
+    if(_readyState <= readyStateOpened && _headers){
+        _addHeader(name, value);
+    }
 }
 
 //**************************************************************************************************************
 void	asyncHTTPrequest::setReqHeader(const char* name, int32_t value){
-    if(_readyState != readyStateUnsent) return;
-    setReqHeader(name, String(value).c_str());
+    if(_readyState <= readyStateOpened && _headers){
+        setReqHeader(name, String(value).c_str());
+    }
 }
 
 //**************************************************************************************************************
