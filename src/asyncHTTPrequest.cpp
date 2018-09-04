@@ -238,7 +238,7 @@ bool  asyncHTTPrequest::_parseURL(String url){
     _URL = new URL;
     _URL->scheme = new char[8];
     strcpy(_URL->scheme, "HTTP://");
-    if(url.startsWith("HTTP://")) {
+    if(url.toUpperCase().startsWith("HTTP://")) {
        hostBeg += 7; 
     }
     int pathBeg = url.indexOf('/', hostBeg);
@@ -298,10 +298,11 @@ bool   asyncHTTPrequest::_buildRequest(){
 
     if( ! _request) _request = new xbuf;
     _request->write(_HTTPmethod == HTTPmethodGET ? "GET " : "POST ");
-    _request->write(_URL->scheme);
-    _request->write(_URL->host);
     _request->write(_URL->path);
     _request->write(_URL->query);
+    _request->write(" HTTP/1.1\r\n");
+    _request->write("host ");
+    _request->write(_URL->host);
     _request->write(" HTTP/1.1\r\n");
     delete _URL;
     _URL = nullptr;
