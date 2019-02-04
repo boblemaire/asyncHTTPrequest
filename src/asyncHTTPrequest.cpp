@@ -238,7 +238,7 @@ bool  asyncHTTPrequest::_parseURL(String url){
     _URL = new URL;
     _URL->scheme = new char[8];
     strcpy(_URL->scheme, "HTTP://");
-    if(url.startsWith("HTTP://")) {
+    if(url.substring(0,7).equalsIgnoreCase("HTTP://")){
        hostBeg += 7; 
     }
     int pathBeg = url.indexOf('/', hostBeg);
