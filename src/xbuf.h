@@ -59,8 +59,8 @@ class xbuf: public Print {
         size_t      read(uint8_t*, size_t);
         String      readStringUntil(const char);
         String      readStringUntil(const char*);
-        String      readString();
         String      readString(int);
+        String      readString(){return readString(available());}
         void        flush();
 
         uint8_t     peek();
