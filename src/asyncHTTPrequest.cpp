@@ -592,9 +592,47 @@ void	asyncHTTPrequest::setReqHeader(const char* name, const char* value){
 }
 
 //**************************************************************************************************************
+void	asyncHTTPrequest::setReqHeader(const char* name, const __FlashStringHelper* value){
+    if(_readyState <= readyStateOpened && _headers){
+        char* _value = _charstar(value);
+        _addHeader(name, _value);
+        delete[] _value;
+    }
+}
+
+//**************************************************************************************************************
+void	asyncHTTPrequest::setReqHeader(const __FlashStringHelper *name, const char* value){
+    if(_readyState <= readyStateOpened && _headers){
+        char* _name = _charstar(name);
+        _addHeader(_name, value);
+        delete[] _name;
+    }
+}
+
+//**************************************************************************************************************
+void	asyncHTTPrequest::setReqHeader(const __FlashStringHelper *name, const __FlashStringHelper* value){
+    if(_readyState <= readyStateOpened && _headers){
+        char* _name = _charstar(name);
+        char* _value = _charstar(value);
+        _addHeader(_name, _value);
+        delete[] _name;
+        delete[] _value;
+    }
+}
+
+//**************************************************************************************************************
 void	asyncHTTPrequest::setReqHeader(const char* name, int32_t value){
     if(_readyState <= readyStateOpened && _headers){
         setReqHeader(name, String(value).c_str());
+    }
+}
+
+//**************************************************************************************************************
+void	asyncHTTPrequest::setReqHeader(const __FlashStringHelper *name, int32_t value){
+    if(_readyState <= readyStateOpened && _headers){
+        char* _name = _charstar(name);
+        setReqHeader(_name, String(value).c_str());
+        delete[] _name;
     }
 }
 
@@ -627,6 +665,16 @@ char*   asyncHTTPrequest::respHeaderValue(const char* name){
 }
 
 //**************************************************************************************************************
+char*   asyncHTTPrequest::respHeaderValue(const __FlashStringHelper *name){
+    if(_readyState < readyStateHdrsRecvd) return nullptr;
+    char* _name = _charstar(name);      
+    header* hdr = _getHeader(_name);
+    delete[] _name;
+    if( ! hdr) return nullptr;
+    return hdr->value;
+}
+
+//**************************************************************************************************************
 char*   asyncHTTPrequest::respHeaderValue(int ndx){
     if(_readyState < readyStateHdrsRecvd) return nullptr;      
     header* hdr = _getHeader(ndx);
@@ -638,6 +686,16 @@ char*   asyncHTTPrequest::respHeaderValue(int ndx){
 bool	asyncHTTPrequest::respHeaderExists(const char* name){
     if(_readyState < readyStateHdrsRecvd) return false;      
     header* hdr = _getHeader(name);
+    if ( ! hdr) return false;
+    return true;
+}
+
+//**************************************************************************************************************
+bool	asyncHTTPrequest::respHeaderExists(const __FlashStringHelper *name){
+    if(_readyState < readyStateHdrsRecvd) return false;
+    char* _name = _charstar(name);      
+    header* hdr = _getHeader(_name);
+    delete[] _name;
     if ( ! hdr) return false;
     return true;
 }
@@ -697,4 +755,12 @@ asyncHTTPrequest::header* asyncHTTPrequest::_getHeader(int ndx){
         hdr = hdr->next; 
     }
     return hdr;
+}
+
+//**************************************************************************************************************
+char* asyncHTTPrequest::_charstar(const __FlashStringHelper * str){
+  if( ! str) return nullptr;
+  char* ptr = new char[strlen_P((PGM_P)str)];
+  strcpy_P(ptr, (PGM_P)str);
+  return ptr;
 }

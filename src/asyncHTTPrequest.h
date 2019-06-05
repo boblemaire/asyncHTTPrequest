@@ -118,8 +118,13 @@ class asyncHTTPrequest {
                                                                     // or you can simply poll readyState()    
     void	setTimeout(int);                                        // overide default timeout (seconds)
 
-    void    setReqHeader(const char* name, const char* value);      // add a request header     
-    void    setReqHeader(const char* name, int32_t value);          // overload to use integer value     
+    void    setReqHeader(const char* name, const char* value);      // add a request header 
+    void    setReqHeader(const char* name, const __FlashStringHelper* value);
+    void    setReqHeader(const __FlashStringHelper *name, const char* value);
+    void    setReqHeader(const __FlashStringHelper *name, const __FlashStringHelper* value);
+
+    void    setReqHeader(const char* name, int32_t value);          // overload to use integer value
+    void    setReqHeader(const __FlashStringHelper *name, int32_t value);     
 
     bool    send();                                                 // Send the request (GET)
     bool    send(String body);                                      // Send the request (POST)
@@ -134,7 +139,9 @@ class asyncHTTPrequest {
     char*   respHeaderName(int index);                              // Return header name by index
     char*   respHeaderValue(int index);                             // Return header value by index
     char*   respHeaderValue(const char* name);                      // Return header value by name
+    char*   respHeaderValue(const __FlashStringHelper *name);
     bool    respHeaderExists(const char* name);                     // Does header exist by name?
+    bool    respHeaderExists(const __FlashStringHelper *name);
     String  headers();                                              // Return all headers as String
 
     void    onData(onDataCB, void* arg = 0);                        // Notify when min data is available
@@ -194,6 +201,7 @@ class asyncHTTPrequest {
     bool        _connect();
     size_t      _send();
     void        _setReadyState(readyStates);
+    char*       _charstar(const __FlashStringHelper *str);
 
     // callbacks
 
