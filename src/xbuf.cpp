@@ -191,6 +191,9 @@ String      xbuf::readStringUntil(const char* target){
 //*******************************************************************************************************************
 String      xbuf::readString(int endPos){
     String result;
+    if( ! result.reserve(endPos+1)){
+        return result;
+    }
     if(endPos > _used){
         endPos = _used;
     }
