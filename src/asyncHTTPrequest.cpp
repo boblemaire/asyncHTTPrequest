@@ -163,8 +163,8 @@ String	asyncHTTPrequest::responseText(){
     if( ! localString.reserve(avail)) {
         DEBUG_HTTP("!responseText() no buffer\r\n")
         _HTTPcode = HTTPCODE_TOO_LESS_RAM;
-        return String();
         _client->abort();
+        return String();
     }
     localString = _response->readString(avail);
     _contentRead += localString.length();
