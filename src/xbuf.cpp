@@ -1,13 +1,13 @@
 #include <xbuf.h>
 
 xbuf::xbuf(const uint16_t segSize)
-    :_offset(0)
-    ,_segSize(64)
-    ,_used(0)
-    ,_free(0)
-    ,_head(0)
-    ,_tail(0)
-    {_segSize = (segSize + 3) & -4;}     //((segSize + 3) >> 2) << 2;}
+    : _head(nullptr)
+    , _tail(nullptr)
+    , _used(0)
+    , _free(0)
+    , _offset(0) {
+    _segSize = (segSize + 3) & -4;//((segSize + 3) >> 2) << 2;
+}
 
 //*******************************************************************************************************************
 xbuf::~xbuf(){

@@ -2,23 +2,31 @@
 
 //**************************************************************************************************************
 asyncHTTPrequest::asyncHTTPrequest()
-    :_debug(DEBUG_IOTA_HTTP_SET)
-    ,_timeout(DEFAULT_RX_TIMEOUT)
-    ,_readyState(readyStateUnsent)
-    ,_HTTPcode(0)
-    ,_URL(nullptr)
-    ,_headers(nullptr)
-    ,_client(nullptr)
-    ,_request(nullptr)
-    ,_response(nullptr)
-    ,_chunks(nullptr)
-    ,_readyStateChangeCB(nullptr)
-    ,_onDataCB(nullptr)
-    ,_chunked(false)
-    ,_lastActivity(0)
-    ,_connectedHost(nullptr)
-    ,_connectedPort(-1)
-    {DEBUG_HTTP("New request.");}
+    : _readyState(readyStateUnsent)
+    , _HTTPcode(0)
+    , _chunked(false)
+    , _debug(DEBUG_IOTA_HTTP_SET)
+    , _timeout(DEFAULT_RX_TIMEOUT)
+    , _lastActivity(0)
+    , _requestStartTime(0)
+    , _requestEndTime(0)
+    , _URL(nullptr)
+    , _connectedHost(nullptr)
+    , _connectedPort(-1)
+    , _client(nullptr)
+    , _contentLength(0)
+    , _contentRead(0)
+    , _readyStateChangeCB(nullptr)
+    , _readyStateChangeCBarg(nullptr)
+    , _onDataCB(nullptr)
+    , _onDataCBarg(nullptr)
+
+    , _request(nullptr)
+    , _response(nullptr)
+    , _chunks(nullptr)
+    , _headers(nullptr)
+{
+    DEBUG_HTTP("New request.");}
 
 //**************************************************************************************************************
 asyncHTTPrequest::~asyncHTTPrequest(){
@@ -64,11 +72,15 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
     _contentRead = 0;
     _readyState = readyStateUnsent;
 
-	if(method == "GET"){_HTTPmethod = HTTPmethodGET;}
-	else if(method == "POST"){_HTTPmethod = HTTPmethodPOST;}
-	else return false;
+    if (strcasecmp(method, "GET") == 0) {
+        _HTTPmethod = HTTPmethodGET;
+    } else if (strcasecmp(method, "POST") == 0) {
+        _HTTPmethod = HTTPmethodPOST;
+    } else
+        return false;
 
-    if( ! _parseURL(URL)){return false;}
+    if (!_parseURL(URL)) {
+        return false;}
     if( _client && _client->connected() && 
       (strcmp(_URL->host, _connectedHost) != 0 || _URL->port != _connectedPort)){return false;}
     _addHeader("host",_URL->host);
@@ -188,7 +200,6 @@ size_t  asyncHTTPrequest::responseRead(uint8_t* buf, size_t len){
 //**************************************************************************************************************
 size_t	asyncHTTPrequest::available(){
     if(_readyState < readyStateLoading) return 0;
-    size_t avail = _response->available();
     if(_chunked && (_contentLength - _contentRead) < _response->available()){
         return _contentLength - _contentRead;
     }
@@ -540,7 +551,7 @@ bool  asyncHTTPrequest::_collectHeaders(){
             // Ordinary header, add to header list.
 
         else {
-            size_t colon = headerLine.indexOf(':');
+            int colon = headerLine.indexOf(':');
             if(colon != -1){
                 String name = headerLine.substring(0, colon);
                 name.trim();
