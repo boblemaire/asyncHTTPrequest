@@ -20,7 +20,6 @@ asyncHTTPrequest::asyncHTTPrequest()
     , _readyStateChangeCBarg(nullptr)
     , _onDataCB(nullptr)
     , _onDataCBarg(nullptr)
-
     , _request(nullptr)
     , _response(nullptr)
     , _chunks(nullptr)
@@ -72,9 +71,9 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
     _contentRead = 0;
     _readyState = readyStateUnsent;
 
-    if (strcasecmp(method, "GET") == 0) {
+    if (strcmp(method, "GET") == 0) {
         _HTTPmethod = HTTPmethodGET;
-    } else if (strcasecmp(method, "POST") == 0) {
+    } else if (strcmp(method, "POST") == 0) {
         _HTTPmethod = HTTPmethodPOST;
     } else
         return false;

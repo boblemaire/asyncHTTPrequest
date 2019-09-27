@@ -116,7 +116,7 @@ class asyncHTTPrequest {
     bool    open(const char* /*GET/POST*/, const char* URL);        // Initiate a request
     void    onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change
                                                                     // or you can simply poll readyState()    
-    void	setTimeout(int);                                        // overide default timeout (seconds)
+    void	  setTimeout(int);                                        // overide default timeout (seconds)
 
     void    setReqHeader(const char* name, const char* value);      // add a request header 
     void    setReqHeader(const char* name, const __FlashStringHelper* value);
