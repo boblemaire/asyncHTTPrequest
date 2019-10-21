@@ -35,7 +35,7 @@
 #include <xbuf.h>
 
 #define DEBUG_HTTP(format,...)  if(_debug){\
-                                    DEBUG_IOTA_PORT.printf("Debug(%3d): ", millis()-_requestStartTime);\
+                                    DEBUG_IOTA_PORT.printf("Debug(%3ld): ", millis()-_requestStartTime);\
                                     DEBUG_IOTA_PORT.printf_P(PSTR(format),##__VA_ARGS__);}
 
 #define DEFAULT_RX_TIMEOUT 3                    // Seconds for timeout
@@ -116,7 +116,7 @@ class asyncHTTPrequest {
     bool    open(const char* /*GET/POST*/, const char* URL);        // Initiate a request
     void    onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change
                                                                     // or you can simply poll readyState()    
-    void	setTimeout(int);                                        // overide default timeout (seconds)
+    void	  setTimeout(int);                                        // overide default timeout (seconds)
 
     void    setReqHeader(const char* name, const char* value);      // add a request header 
     void    setReqHeader(const char* name, const __FlashStringHelper* value);
@@ -185,7 +185,7 @@ class asyncHTTPrequest {
     // request and response String buffers and header list (same queue for request and response).   
 
     xbuf*       _request;                       // Tx data buffer 
-	xbuf*       _response;                      // Rx data buffer for headers
+	  xbuf*       _response;                      // Rx data buffer for headers
     xbuf*       _chunks;                        // First stage for chunked response    
     header*     _headers;                       // request or (readyState > readyStateHdrsRcvd) response headers    
 

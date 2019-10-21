@@ -45,7 +45,7 @@ class xbuf: public Print {
     public:
 
         xbuf(const uint16_t segSize=64);
-        ~xbuf();
+        virtual ~xbuf();
 
         size_t      write(const uint8_t);
         size_t      write(const char*);
