@@ -311,11 +311,6 @@ bool   asyncHTTPrequest::_buildRequest(){
     _request->write(_URL->path);
     _request->write(_URL->query);
     _request->write(" HTTP/1.1\r\n");
-    _request->write("Host: ");
-    _request->write(_URL->host);
-    _request->write(":");
-    _request->write(_URL->port);
-    _request->write("\r\n");
     delete _URL;
     _URL = nullptr;
     header* hdr = _headers;
