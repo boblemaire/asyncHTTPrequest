@@ -1,5 +1,5 @@
 #ifndef asyncHTTPrequest_h
-#define asyncHTTPrequest_h
+#define asyncHTTPrequest_h "1.1.15"
 
    /***********************************************************************************
     Copyright (C) <2018>  <Bob Lemaire, IoTaWatt, Inc.>
@@ -150,7 +150,8 @@ class asyncHTTPrequest {
     int     responseHTTPcode();                                     // HTTP response code or (negative) error code
     String  responseText();                                         // response (whole* or partial* as string)
     size_t  responseRead(uint8_t* buffer, size_t len);              // Read response into buffer
-    uint32_t elapsedTime();                                         // Elapsed time of in progress transaction or last completed (ms)                                                                // Note, caller takes posession, responsible for delete
+    uint32_t elapsedTime();                                         // Elapsed time of in progress transaction or last completed (ms)
+    String  version();                                              // Version of asyncHTTPrequest
 //___________________________________________________________________________________________________________________________________
 
   private:

@@ -42,7 +42,7 @@ asyncHTTPrequest::~asyncHTTPrequest(){
 void    asyncHTTPrequest::setDebug(bool debug){
     if(_debug || debug) {
         _debug = true;
-        DEBUG_HTTP("setDebug(%s)\r\n", debug ? "on" : "off");
+        DEBUG_HTTP("setDebug(%s) version %s\r\n", debug ? "on" : "off", asyncHTTPrequest_h);
     }
 	_debug = debug;
 }
@@ -228,6 +228,11 @@ uint32_t asyncHTTPrequest::elapsedTime(){
         return millis() - _requestStartTime;
     }
     return _requestEndTime - _requestStartTime;
+}
+
+//**************************************************************************************************************
+String asyncHTTPrequest::version(){
+    return String(asyncHTTPrequest_h);
 }
 
 /*______________________________________________________________________________________________________________
