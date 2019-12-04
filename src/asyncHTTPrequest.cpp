@@ -308,8 +308,6 @@ bool   asyncHTTPrequest::_buildRequest(){
 
     if( ! _request) _request = new xbuf;
     _request->write(_HTTPmethod == HTTPmethodGET ? "GET " : "POST ");
-    _request->write(_URL->scheme);
-    _request->write(_URL->host);
     _request->write(_URL->path);
     _request->write(_URL->query);
     _request->write(" HTTP/1.1\r\n");
