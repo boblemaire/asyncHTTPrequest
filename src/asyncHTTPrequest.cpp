@@ -82,7 +82,10 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
         return false;}
     if( _client && _client->connected() && 
       (strcmp(_URL->host, _connectedHost) != 0 || _URL->port != _connectedPort)){return false;}
-    _addHeader("host",_URL->host);
+    char* hostName = new char[strlen(_URL->host)+10];
+    sprintf(hostName,"%s:%d", _URL->host, _URL->port);  
+    _addHeader("host",hostName);
+    delete[] hostName;
     _lastActivity = millis();
 	return _connect();
 }
@@ -249,8 +252,12 @@ bool  asyncHTTPrequest::_parseURL(String url){
     _URL->scheme = new char[8];
     strcpy(_URL->scheme, "HTTP://");
     if(url.substring(0,7).equalsIgnoreCase("HTTP://")){
-       hostBeg += 7; 
+        hostBeg += 7; 
     }
+    else if(url.substring(0,8).equalsIgnoreCase("HTTPS://")){
+        return false;
+    }
+    
     int pathBeg = url.indexOf('/', hostBeg);
     if(pathBeg < 0) return false;
     int hostEnd = pathBeg;
