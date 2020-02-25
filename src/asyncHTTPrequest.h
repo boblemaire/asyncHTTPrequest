@@ -29,8 +29,8 @@
 
 #ifndef ESP32
 #include <ESPAsyncTCP.h>
-#define _seize (void)
-#define _release (void)
+#define _seize 
+#define _release 
 #endif
 
 #ifdef ESP32
