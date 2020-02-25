@@ -3,21 +3,19 @@
 
    /***********************************************************************************
     Copyright (C) <2018>  <Bob Lemaire, IoTaWatt, Inc.>
-
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.  
    
 ***********************************************************************************/
+#include <Arduino.h>
 
 #ifndef DEBUG_IOTA_PORT
 #define DEBUG_IOTA_PORT Serial
@@ -29,8 +27,18 @@
 #define DEBUG_IOTA_HTTP_SET false
 #endif
 
-#include <Arduino.h>
+#ifndef ESP32
 #include <ESPAsyncTCP.h>
+#define _seize (void)
+#define _release (void)
+#endif
+
+#ifdef ESP32
+#include <AsyncTCP.h>
+#define _seize xSemaphoreTakeRecursive(threadLock,portMAX_DELAY)
+#define _release xSemaphoreGiveRecursive(threadLock)
+#endif
+
 #include <pgmspace.h>
 #include <xbuf.h>
 
@@ -183,6 +191,10 @@ class asyncHTTPrequest {
     onDataCB        _onDataCB;                  // optional callback when data received
     void*           _onDataCBarg;               // associated user argument
 
+    #ifdef ESP32
+    SemaphoreHandle_t threadLock;
+    #endif
+
     // request and response String buffers and header list (same queue for request and response).   
 
     xbuf*       _request;                       // Tx data buffer 
@@ -203,7 +215,7 @@ class asyncHTTPrequest {
     size_t      _send();
     void        _setReadyState(readyStates);
     char*       _charstar(const __FlashStringHelper *str);
-
+    
     // callbacks
 
     void        _onConnect(AsyncClient*);
