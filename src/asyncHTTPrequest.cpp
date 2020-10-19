@@ -86,9 +86,13 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
         return false;
 
     if (!_parseURL(URL)) {
-        return false;}
-    if( _client && _client->connected() && 
-      (strcmp(_URL->host, _connectedHost) != 0 || _URL->port != _connectedPort)){return false;}
+        // Serial.print("JLC->Could Not parse URL\n"); //REMOVE
+        return false;
+    }
+    if( _client && _client->connected() && (strcmp(_URL->host, _connectedHost) != 0 || _URL->port != _connectedPort)){
+        // Serial.print("JLC->Strcmp false\n"); //REMOVE
+        return false;
+    }
     char* hostName = new char[strlen(_URL->host)+10];
     sprintf(hostName,"%s:%d", _URL->host, _URL->port);  
     _addHeader("host",hostName);
@@ -301,7 +305,10 @@ bool  asyncHTTPrequest::_parseURL(String url){
     }
     
     int pathBeg = url.indexOf('/', hostBeg);
-    if(pathBeg < 0) return false;
+    if(pathBeg < 0){             //return false;
+        log_w("No frontslash");
+        pathBeg = url.length();
+    }
     int hostEnd = pathBeg;
     int portBeg = url.indexOf(':',hostBeg);
     if(portBeg > 0 && portBeg < pathBeg){
@@ -312,11 +319,22 @@ bool  asyncHTTPrequest::_parseURL(String url){
     strcpy(_URL->host, url.substring(hostBeg, hostEnd).c_str());
     int queryBeg = url.indexOf('?');
     if(queryBeg < 0) queryBeg = url.length();
-    _URL->path = new char[queryBeg - pathBeg + 1];
-    strcpy(_URL->path, url.substring(pathBeg, queryBeg).c_str());
+    String aux_path = url.substring(pathBeg, queryBeg);
+    //fix to when no frontslash i the end
+    if (aux_path.isEmpty()){
+        log_w("Path empty");
+        _URL->path = new char[2];
+        strcpy(_URL->path, "/");
+    }else{
+        log_d("Path NOT empty");
+        _URL->path = new char[queryBeg - pathBeg + 1];
+        strcpy(_URL->path, aux_path.c_str());
+    }
+    
     _URL->query = new char[url.length() - queryBeg + 1];
     strcpy(_URL->query, url.substring(queryBeg).c_str());
     DEBUG_HTTP("_parseURL() %s%s:%d%s%.16s\r\n", _URL->scheme, _URL->host, _URL->port, _URL->path, _URL->query);
+    log_v("scheme: %s\nhost: %s\nport: %d\npath: %s\nquery: %.16s\r\n", _URL->scheme, _URL->host, _URL->port, _URL->path, _URL->query);
     return true;
 }
 
