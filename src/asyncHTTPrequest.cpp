@@ -86,11 +86,9 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
         return false;
 
     if (!_parseURL(URL)) {
-        // Serial.print("JLC->Could Not parse URL\n"); //REMOVE
         return false;
     }
     if( _client && _client->connected() && (strcmp(_URL->host, _connectedHost) != 0 || _URL->port != _connectedPort)){
-        // Serial.print("JLC->Strcmp false\n"); //REMOVE
         return false;
     }
     char* hostName = new char[strlen(_URL->host)+10];
