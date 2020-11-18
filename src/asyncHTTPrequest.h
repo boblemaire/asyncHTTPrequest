@@ -71,41 +71,33 @@ class asyncHTTPrequest {
         name(nullptr), 
         value(nullptr)
         {};
-	  ~header(){
+	  ~header()
+    {
         delete[] name; 
         delete[] value; 
         delete next;
-        }
+    }
   };
 
   struct  URL {
-        char*   scheme;
-        char*   user;
-        char*   pwd;
-        char*   host;
-        int     port;
-        char*   path;
-        char*   query;
-        char*   fragment; 
-        URL():
-            scheme(nullptr),
-            user(nullptr),
-            pwd(nullptr),
-            host(nullptr),
-            port(80),
-            path(nullptr),
-            query(nullptr),
-            fragment(nullptr)
-            {};
-        ~URL(){
-            delete[] scheme;
-            delete[] user;
-            delete[] pwd;
-            delete[] host;
-            delete[] path;
-            delete[] query;
-            delete[] fragment;
-        }
+      char *buffer;
+      char *scheme;
+      char *host;
+      int port;
+      char *path;
+      char *query;
+      URL() 
+        :buffer(nullptr)
+        ,scheme(nullptr)
+        ,host(nullptr)
+        ,port(80)
+        ,path(nullptr)
+        ,query(nullptr)
+        {};
+      ~URL()
+      {
+        delete[] buffer;
+      }
     };
 
     typedef std::function<void(void*, asyncHTTPrequest*, int readyState)> readyStateChangeCB;
@@ -125,7 +117,6 @@ class asyncHTTPrequest {
     void    onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change
                                                                     // or you can simply poll readyState()    
     void	  setTimeout(int);                                        // overide default timeout (seconds)
-
     void    setReqHeader(const char* name, const char* value);      // add a request header 
     void    setReqHeader(const char* name, const __FlashStringHelper* value);
     void    setReqHeader(const __FlashStringHelper *name, const char* value);

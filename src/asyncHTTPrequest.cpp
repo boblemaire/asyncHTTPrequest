@@ -283,40 +283,81 @@ ________________________________________________________________________________
 
 //**************************************************************************************************************
 bool  asyncHTTPrequest::_parseURL(const char* url){
-    return _parseURL(String(url));
-}
-
-//**************************************************************************************************************
-bool  asyncHTTPrequest::_parseURL(String url){
     delete _URL;
-    int hostBeg = 0;
     _URL = new URL;
-    _URL->scheme = new char[8];
-    strcpy(_URL->scheme, "HTTP://");
-    if(url.substring(0,7).equalsIgnoreCase("HTTP://")){
-        hostBeg += 7; 
+    _URL->buffer = new char[strlen(url) + 8];
+    char *bufptr = _URL->buffer;
+    const char *urlptr = url;
+
+        // Find first delimiter
+
+    int seglen = strcspn(urlptr, ":/?");
+
+        // scheme
+
+    _URL->scheme = bufptr;
+    if(! memcmp(urlptr+seglen, "://", 3)){
+        while(seglen--){
+            *bufptr++ = toupper(*urlptr++);
+        }
+        urlptr += 3;
+        seglen = strcspn(urlptr, ":/?");
     }
-    else if(url.substring(0,8).equalsIgnoreCase("HTTPS://")){
+    else {
+        memcpy(bufptr, "HTTP", 4);
+        bufptr += 4;
+    }
+    *bufptr++ = 0;
+
+        // host
+
+    _URL->host = bufptr;
+    memcpy(bufptr, urlptr, seglen);
+    bufptr += seglen;
+    *bufptr++ = 0;
+    urlptr += seglen;
+
+        // port 
+
+    if(*urlptr == ':'){
+        urlptr++;
+        seglen = strcspn(urlptr, "/?");
+        char *endptr = 0;
+        _URL->port = strtol(urlptr, &endptr, 10);
+        if((endptr-urlptr) != seglen){
+            return false;
+        }
+        urlptr = endptr;
+    }
+
+        // path 
+
+    _URL->path = bufptr;
+    *bufptr++ = '/';
+    if(*urlptr == '/'){
+        seglen = strcspn(++urlptr, "?");
+        memcpy(bufptr, urlptr, seglen);
+        bufptr += seglen;
+        urlptr += seglen;
+    }
+    *bufptr++ = 0;
+
+        // query
+
+    _URL->query = bufptr;
+    if(*urlptr == '?'){
+        seglen = strlen(urlptr);
+        memcpy(bufptr, urlptr, seglen);
+        bufptr += seglen;
+        urlptr += seglen;
+    }
+    *bufptr++ = 0;
+
+    if(strcmp(_URL->scheme, "HTTP")){
         return false;
     }
-    
-    int pathBeg = url.indexOf('/', hostBeg);
-    if(pathBeg < 0) return false;
-    int hostEnd = pathBeg;
-    int portBeg = url.indexOf(':',hostBeg);
-    if(portBeg > 0 && portBeg < pathBeg){
-        _URL->port = url.substring(portBeg+1, pathBeg).toInt();
-        hostEnd = portBeg;
-    }
-    _URL->host = new char[hostEnd - hostBeg + 1];
-    strcpy(_URL->host, url.substring(hostBeg, hostEnd).c_str());
-    int queryBeg = url.indexOf('?');
-    if(queryBeg < 0) queryBeg = url.length();
-    _URL->path = new char[queryBeg - pathBeg + 1];
-    strcpy(_URL->path, url.substring(pathBeg, queryBeg).c_str());
-    _URL->query = new char[url.length() - queryBeg + 1];
-    strcpy(_URL->query, url.substring(queryBeg).c_str());
-    DEBUG_HTTP("_parseURL() %s%s:%d%s%.16s\r\n", _URL->scheme, _URL->host, _URL->port, _URL->path, _URL->query);
+
+    DEBUG_HTTP("_parseURL() %s://%s:%d%s%.16s\r\n", _URL->scheme, _URL->host, _URL->port, _URL->path, _URL->query);
     return true;
 }
 
