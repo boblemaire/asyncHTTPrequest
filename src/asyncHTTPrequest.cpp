@@ -205,16 +205,15 @@ String	asyncHTTPrequest::responseText(){
         _release;
         return String(); 
     }       
-    String localString;
     size_t avail = available();
-    if( ! localString.reserve(avail)) {
+    String localString = _response->readString(avail);
+    if(localString.length() < avail) {
         DEBUG_HTTP("!responseText() no buffer\r\n")
         _HTTPcode = HTTPCODE_TOO_LESS_RAM;
         _client->abort();
         _release;
         return String();
     }
-    localString = _response->readString(avail);
     _contentRead += localString.length();
     DEBUG_HTTP("responseText() %s... (%d)\r\n", localString.substring(0,16).c_str() , avail);
     _release;
