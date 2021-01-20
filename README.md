@@ -1,5 +1,7 @@
 # asyncHTTPrequest
 
+NOTE: This was originally intended for ESP8266, although it works fine for HTTP on ESP32.  For a non-async version that handles HTTPS on ESP32, see the follow-on esp32HTTPrequest in this repo.
+
 Asynchronous HTTP for ESP8266 and ESP32. 
 Subset of HTTP.
 Built on ESPAsyncTCP (AsyncTCP for ESP32)
