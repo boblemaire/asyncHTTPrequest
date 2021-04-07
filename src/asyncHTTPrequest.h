@@ -112,6 +112,7 @@ class asyncHTTPrequest {
     //__________________________________________________________________________________________________________*/
     void    setDebug(bool);                                         // Turn debug message on/off
     bool    debug();                                                // is debug on or off?
+    void    setAckLate(bool);                                       // Allow handling huge responses via ackLate
 
     bool    open(const char* /*GET/POST*/, const char* URL);        // Initiate a request
     void    onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change
@@ -167,6 +168,7 @@ class asyncHTTPrequest {
     int16_t         _HTTPcode;                  // HTTP response code or (negative) exception code
     bool            _chunked;                   // Processing chunked response
     bool            _debug;                     // Debug state
+    bool            _ackLate;                   // Late ack to handle huge responses
     uint32_t        _timeout;                   // Default or user overide RxTimeout in seconds
     uint32_t        _lastActivity;              // Time of last activity 
     uint32_t        _requestStartTime;          // Time last open() issued

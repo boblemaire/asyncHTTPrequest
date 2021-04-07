@@ -7,6 +7,7 @@ asyncHTTPrequest::asyncHTTPrequest()
     , _chunked(false)
     , _debug(DEBUG_IOTA_HTTP_SET)
     , _timeout(DEFAULT_RX_TIMEOUT)
+    , _ackLate(false)
     , _lastActivity(0)
     , _requestStartTime(0)
     , _requestEndTime(0)
@@ -59,6 +60,10 @@ bool    asyncHTTPrequest::debug(){
     return(_debug);
 }
 
+//**************************************************************************************************************
+void    asyncHTTPrequest::setAckLate(bool ackLate){
+    _ackLate = ackLate;
+}
 //**************************************************************************************************************
 bool	asyncHTTPrequest::open(const char* method, const char* URL){
     DEBUG_HTTP("open(%s, %.32s)\r\n", method, URL);
@@ -232,6 +237,8 @@ size_t  asyncHTTPrequest::responseRead(uint8_t* buf, size_t len){
     DEBUG_HTTP("responseRead() %.16s... (%d)\r\n", (char*)buf , avail);
     _contentRead += avail;
     _release;
+    if (_ackLate)
+        _client->ack(avail);
     return avail;
 }
 
@@ -609,6 +616,8 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
 
     if(_onDataCB && available()){
         _onDataCB(_onDataCBarg, this, available());
+    } else if (_ackLate) {
+         _client->ackLater();
     }
     _release;            
           
