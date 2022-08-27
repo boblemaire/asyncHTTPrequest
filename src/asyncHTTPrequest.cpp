@@ -78,20 +78,20 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
     _contentRead = 0;
     _readyState = readyStateUnsent;
 
-    if (strcmp(method, "GET") == 0) {
+    if (strcmp_P(method, PSTR("GET")) == 0) {
         _HTTPmethod = HTTPmethodGET;
-    } else if (strcmp(method, "POST") == 0) {
+    } else if (strcmp_P(method, PSTR("POST")) == 0) {
         _HTTPmethod = HTTPmethodPOST;
     } else
         return false;
 
     if (!_parseURL(URL)) {
         return false;}
-    if( _client && _client->connected() && 
+    if( _client && _client->connected() &&
       (strcmp(_URL->host, _connectedHost) != 0 || _URL->port != _connectedPort)){return false;}
     char* hostName = new char[strlen(_URL->host)+10];
-    sprintf(hostName,"%s:%d", _URL->host, _URL->port);  
-    _addHeader("host",hostName);
+    sprintf(hostName,"%s:%d", _URL->host, _URL->port);
+    _addHeader(PSTR("host"),hostName);
     delete[] hostName;
     _lastActivity = millis();
 	return _connect();
@@ -122,7 +122,7 @@ bool	asyncHTTPrequest::send(){
 bool    asyncHTTPrequest::send(String body){
     DEBUG_HTTP("send(String) %s... (%d)\r\n", body.substring(0,16).c_str(), body.length());
     _seize;
-    _addHeader("Content-Length", String(body.length()).c_str());
+    _addHeader(PSTR("Content-Length"), String(body.length()).c_str());
     if( ! _buildRequest()){
         _release;
         return false;
@@ -137,11 +137,11 @@ bool    asyncHTTPrequest::send(String body){
 bool	asyncHTTPrequest::send(const char* body){
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n",body, strlen(body));
     _seize;
-    _addHeader("Content-Length", String(strlen(body)).c_str());
+    _addHeader(PSTR("Content-Length"), String(strlen(body)).c_str());
     if( ! _buildRequest()){
         _release;
         return false;
-    } 
+    }
     _request->write(body);
     _send();
     _release;
@@ -152,11 +152,11 @@ bool	asyncHTTPrequest::send(const char* body){
 bool	asyncHTTPrequest::send(const uint8_t* body, size_t len){
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n",(char*)body, len);
     _seize;
-    _addHeader("Content-Length", String(len).c_str());
+    _addHeader(PSTR("Content-Length"), String(len).c_str());
     if( ! _buildRequest()){
         _release;
         return false;
-    } 
+    }
     _request->write(body, len);
     _send();
     _release;
@@ -167,11 +167,11 @@ bool	asyncHTTPrequest::send(const uint8_t* body, size_t len){
 bool	asyncHTTPrequest::send(xbuf* body, size_t len){
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n", body->peekString(16).c_str(), len);
     _seize;
-    _addHeader("Content-Length", String(len).c_str());
+    _addHeader(PSTR("Content-Length"), String(len).c_str());
     if( ! _buildRequest()){
         _release;
         return false;
-    } 
+    }
     _request->write(body, len);
     _send();
     _release;
@@ -203,8 +203,8 @@ String	asyncHTTPrequest::responseText(){
     if( ! _response || _readyState < readyStateLoading || ! available()){
         DEBUG_HTTP("responseText() no data\r\n");
         _release;
-        return String(); 
-    }       
+        return String();
+    }
     size_t avail = available();
     String localString = _response->readString(avail);
     if(localString.length() < avail) {
@@ -225,7 +225,7 @@ size_t  asyncHTTPrequest::responseRead(uint8_t* buf, size_t len){
     if( ! _response || _readyState < readyStateLoading || ! available()){
         DEBUG_HTTP("responseRead() no data\r\n");
         return 0;
-    } 
+    }
     _seize;
     size_t avail = available() > len ? len : available();
     _response->read(buf, avail);
@@ -295,7 +295,7 @@ bool  asyncHTTPrequest::_parseURL(const char* url){
         // scheme
 
     _URL->scheme = bufptr;
-    if(! memcmp(urlptr+seglen, "://", 3)){
+    if(! memcmp_P(urlptr+seglen, PSTR("://"), 3)){
         while(seglen--){
             *bufptr++ = toupper(*urlptr++);
         }
@@ -303,7 +303,7 @@ bool  asyncHTTPrequest::_parseURL(const char* url){
         seglen = strcspn(urlptr, ":/?");
     }
     else {
-        memcpy(bufptr, "HTTP", 4);
+        memcpy_P(bufptr, PSTR("HTTP"), 4);
         bufptr += 4;
     }
     *bufptr++ = 0;
@@ -316,7 +316,7 @@ bool  asyncHTTPrequest::_parseURL(const char* url){
     *bufptr++ = 0;
     urlptr += seglen;
 
-        // port 
+        // port
 
     if(*urlptr == ':'){
         urlptr++;
@@ -329,7 +329,7 @@ bool  asyncHTTPrequest::_parseURL(const char* url){
         urlptr = endptr;
     }
 
-        // path 
+        // path
 
     _URL->path = bufptr;
     *bufptr++ = '/';
@@ -352,7 +352,7 @@ bool  asyncHTTPrequest::_parseURL(const char* url){
     }
     *bufptr++ = 0;
 
-    if(strcmp(_URL->scheme, "HTTP")){
+    if(strcmp_P(_URL->scheme, PSTR("HTTP"))){
         return false;
     }
 
@@ -366,7 +366,7 @@ bool  asyncHTTPrequest::_connect(){
     if( ! _client){
         _client = new AsyncClient();
     }
-    delete[] _connectedHost;	
+    delete[] _connectedHost;
     _connectedHost = new char[strlen(_URL->host) + 1];
     strcpy(_connectedHost, _URL->host);
     _connectedPort = _URL->port;
@@ -392,14 +392,14 @@ bool  asyncHTTPrequest::_connect(){
 //**************************************************************************************************************
 bool   asyncHTTPrequest::_buildRequest(){
     DEBUG_HTTP("_buildRequest()\r\n");
-    
+
         // Build the header.
 
     if( ! _request) _request = new xbuf;
-    _request->write(_HTTPmethod == HTTPmethodGET ? "GET " : "POST ");
+    _request->write(_HTTPmethod == HTTPmethodGET ? PSTR("GET ") : PSTR("POST "));
     _request->write(_URL->path);
     _request->write(_URL->query);
-    _request->write(" HTTP/1.1\r\n");
+    _request->write(PSTR(" HTTP/1.1\r\n"));
     delete _URL;
     _URL = nullptr;
     header* hdr = _headers;
@@ -407,12 +407,12 @@ bool   asyncHTTPrequest::_buildRequest(){
         _request->write(hdr->name);
         _request->write(':');
         _request->write(hdr->value);
-        _request->write("\r\n");
+        _request->write(PSTR("\r\n"));
         hdr = hdr->next;
     }
     delete _headers;
     _headers = nullptr;
-    _request->write("\r\n");
+    _request->write(PSTR("\r\n"));
 
     return true;
 }
@@ -442,19 +442,19 @@ size_t  asyncHTTPrequest::_send(){
     }
     _client->send();
     DEBUG_HTTP("*sent %d\r\n", sent);
-    _lastActivity = millis(); 
+    _lastActivity = millis();
     return sent;
 }
 
 //**************************************************************************************************************
 void  asyncHTTPrequest::_setReadyState(readyStates newState){
     if(_readyState != newState){
-        _readyState = newState;          
+        _readyState = newState;
         DEBUG_HTTP("_setReadyState(%d)\r\n", _readyState);
         if(_readyStateChangeCB){
             _readyStateChangeCB(_readyStateChangeCBarg, this, _readyState);
         }
-    } 
+    }
 }
 
 //**************************************************************************************************************
@@ -477,7 +477,7 @@ void  asyncHTTPrequest::_processChunks(){
                 _client->close();
             }
             else {
-                DEBUG_HTTP("*all chunks received - no disconnect\r\n"); 
+                DEBUG_HTTP("*all chunks received - no disconnect\r\n");
             }
             _requestEndTime = millis();
             _lastActivity = 0;
@@ -491,10 +491,10 @@ void  asyncHTTPrequest::_processChunks(){
 /*______________________________________________________________________________________________________________
 
 EEEEE   V   V   EEEEE   N   N   TTTTT         H   H    AAA    N   N   DDDD    L       EEEEE   RRRR     SSS
-E       V   V   E       NN  N     T           H   H   A   A   NN  N   D   D   L       E       R   R   S 
+E       V   V   E       NN  N     T           H   H   A   A   NN  N   D   D   L       E       R   R   S
 EEE     V   V   EEE     N N N     T           HHHHH   AAAAA   N N N   D   D   L       EEE     RRRR     SSS
 E        V V    E       N  NN     T           H   H   A   A   N  NN   D   D   L       E       R  R        S
-EEEEE     V     EEEEE   N   N     T           H   H   A   A   N   N   DDDD    LLLLL   EEEEE   R   R    SSS 
+EEEEE     V     EEEEE   N   N     T           H   H   A   A   N   N   DDDD    LLLLL   EEEEE   R   R    SSS
 _______________________________________________________________________________________________________________*/
 
 //**************************************************************************************************************
@@ -526,8 +526,8 @@ void  asyncHTTPrequest::_onPoll(AsyncClient* client){
     }
     if(_onDataCB && available()){
         _onDataCB(_onDataCBarg, this, available());
-    } 
-    _release;     
+    }
+    _release;
 }
 
 //**************************************************************************************************************
@@ -543,7 +543,7 @@ void  asyncHTTPrequest::_onDisconnect(AsyncClient* client){
     if(_readyState < readyStateOpened){
         _HTTPcode = HTTPCODE_NOT_CONNECTED;
     }
-    else if (_HTTPcode > 0 && 
+    else if (_HTTPcode > 0 &&
             (_readyState < readyStateHdrsRecvd || (_contentRead + _response->available()) < _contentLength)) {
         _HTTPcode = HTTPCODE_CONNECTION_LOST;
     }
@@ -563,7 +563,7 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
     DEBUG_HTTP("_onData handler %.16s... (%d)\r\n",(char*) Vbuf, len);
     _seize;
     _lastActivity = millis();
-    
+
                 // Transfer data to xbuf
 
     if(_chunks){
@@ -571,7 +571,7 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
         _processChunks();
     }
     else {
-        _response->write((uint8_t*)Vbuf, len);                
+        _response->write((uint8_t*)Vbuf, len);
     }
 
                 // if headers not complete, collect them.
@@ -602,7 +602,7 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
         _requestEndTime = millis();
         _lastActivity = 0;
         _timeout = 0;
-        _setReadyState(readyStateDone);        
+        _setReadyState(readyStateDone);
     }
 
                 // If onData callback requested, do so.
@@ -610,8 +610,8 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
     if(_onDataCB && available()){
         _onDataCB(_onDataCBarg, this, available());
     }
-    _release;            
-          
+    _release;
+
 }
 
 //**************************************************************************************************************
@@ -622,23 +622,23 @@ bool  asyncHTTPrequest::_collectHeaders(){
             // Drop out and return false if no \r\n (incomplete)
 
     do {
-        String headerLine = _response->readStringUntil("\r\n");
+        String headerLine = _response->readStringUntil(String(F("\r\n")).c_str());
 
             // If no line, return false.
 
         if( ! headerLine.length()){
             return false;
-        }  
+        }
 
             // If empty line, all headers are in, advance readyState.
-           
+
         if(headerLine.length() == 2){
             _setReadyState(readyStateHdrsRecvd);
         }
 
             // If line is HTTP header, capture HTTPcode.
 
-        else if(headerLine.substring(0,7) == "HTTP/1."){
+        else if(headerLine.substring(0,7) == F("HTTP/1.")){
             _HTTPcode = headerLine.substring(9, headerLine.indexOf(' ', 9)).toInt();
         }
 
@@ -652,20 +652,20 @@ bool  asyncHTTPrequest::_collectHeaders(){
                 String value = headerLine.substring(colon+1);
                 value.trim();
                 _addHeader(name.c_str(), value.c_str());
-            }   
-        } 
-    } while(_readyState == readyStateOpened); 
+            }
+        }
+    } while(_readyState == readyStateOpened);
 
             // If content-Length header, set _contentLength
 
-    header *hdr = _getHeader("Content-Length");
+    header *hdr = _getHeader(PSTR("Content-Length"));
     if(hdr){
         _contentLength = strtol(hdr->value,nullptr,10);
     }
 
             // If chunked specified, try to set _contentLength to size of first chunk
 
-    hdr = _getHeader("Transfer-Encoding"); 
+    hdr = _getHeader(PSTR("Transfer-Encoding"));
     if(hdr && strcasecmp_P(hdr->value, PSTR("chunked")) == 0){
         DEBUG_HTTP("*transfer-encoding: chunked\r\n");
         _chunked = true;
@@ -673,17 +673,17 @@ bool  asyncHTTPrequest::_collectHeaders(){
         _chunks = new xbuf;
         _chunks->write(_response, _response->available());
         _processChunks();
-    }         
+    }
 
-    
+
     return true;
-}      
-        
+}
+
 
 /*_____________________________________________________________________________________________________________
 
                         H   H  EEEEE   AAA   DDDD   EEEEE  RRRR    SSS
-                        H   H  E      A   A  D   D  E      R   R  S   
+                        H   H  E      A   A  D   D  E      R   R  S
                         HHHHH  EEE    AAAAA  D   D  EEE    RRRR    SSS
                         H   H  E      A   A  D   D  E      R  R       S
                         H   H  EEEEE  A   A  DDDD   EEEEE  R   R   SSS
@@ -743,7 +743,7 @@ void	asyncHTTPrequest::setReqHeader(const __FlashStringHelper *name, int32_t val
 
 //**************************************************************************************************************
 int		asyncHTTPrequest::respHeaderCount(){
-    if(_readyState < readyStateHdrsRecvd) return 0;                                            
+    if(_readyState < readyStateHdrsRecvd) return 0;
     int count = 0;
     header* hdr = _headers;
     while(hdr){
@@ -755,7 +755,7 @@ int		asyncHTTPrequest::respHeaderCount(){
 
 //**************************************************************************************************************
 char*   asyncHTTPrequest::respHeaderName(int ndx){
-    if(_readyState < readyStateHdrsRecvd) return nullptr;      
+    if(_readyState < readyStateHdrsRecvd) return nullptr;
     header* hdr = _getHeader(ndx);
     if ( ! hdr) return nullptr;
     return hdr->name;
@@ -763,7 +763,7 @@ char*   asyncHTTPrequest::respHeaderName(int ndx){
 
 //**************************************************************************************************************
 char*   asyncHTTPrequest::respHeaderValue(const char* name){
-    if(_readyState < readyStateHdrsRecvd) return nullptr;      
+    if(_readyState < readyStateHdrsRecvd) return nullptr;
     header* hdr = _getHeader(name);
     if( ! hdr) return nullptr;
     return hdr->value;
@@ -772,7 +772,7 @@ char*   asyncHTTPrequest::respHeaderValue(const char* name){
 //**************************************************************************************************************
 char*   asyncHTTPrequest::respHeaderValue(const __FlashStringHelper *name){
     if(_readyState < readyStateHdrsRecvd) return nullptr;
-    char* _name = _charstar(name);      
+    char* _name = _charstar(name);
     header* hdr = _getHeader(_name);
     delete[] _name;
     if( ! hdr) return nullptr;
@@ -781,7 +781,7 @@ char*   asyncHTTPrequest::respHeaderValue(const __FlashStringHelper *name){
 
 //**************************************************************************************************************
 char*   asyncHTTPrequest::respHeaderValue(int ndx){
-    if(_readyState < readyStateHdrsRecvd) return nullptr;      
+    if(_readyState < readyStateHdrsRecvd) return nullptr;
     header* hdr = _getHeader(ndx);
     if ( ! hdr) return nullptr;
     return hdr->value;
@@ -789,7 +789,7 @@ char*   asyncHTTPrequest::respHeaderValue(int ndx){
 
 //**************************************************************************************************************
 bool	asyncHTTPrequest::respHeaderExists(const char* name){
-    if(_readyState < readyStateHdrsRecvd) return false;      
+    if(_readyState < readyStateHdrsRecvd) return false;
     header* hdr = _getHeader(name);
     if ( ! hdr) return false;
     return true;
@@ -798,7 +798,7 @@ bool	asyncHTTPrequest::respHeaderExists(const char* name){
 //**************************************************************************************************************
 bool	asyncHTTPrequest::respHeaderExists(const __FlashStringHelper *name){
     if(_readyState < readyStateHdrsRecvd) return false;
-    char* _name = _charstar(name);      
+    char* _name = _charstar(name);
     header* hdr = _getHeader(_name);
     delete[] _name;
     if ( ! hdr) return false;
@@ -808,16 +808,16 @@ bool	asyncHTTPrequest::respHeaderExists(const __FlashStringHelper *name){
 //**************************************************************************************************************
 String  asyncHTTPrequest::headers(){
     _seize;
-    String _response = "";
+    String _response = F("");
     header* hdr = _headers;
     while(hdr){
         _response += hdr->name;
         _response += ':';
         _response += hdr->value;
-        _response += "\r\n";
+        _response += F("\r\n");
         hdr = hdr->next;
     }
-    _response += "\r\n";
+    _response += F("\r\n");
     _release;
     return _response;
 }
@@ -827,7 +827,7 @@ asyncHTTPrequest::header*  asyncHTTPrequest::_addHeader(const char* name, const 
     _seize;
     header* hdr = (header*) &_headers;
     while(hdr->next) {
-        if(strcasecmp(name, hdr->next->name) == 0){
+        if(strcasecmp_P(name, hdr->next->name) == 0){
             header* oldHdr = hdr->next;
             hdr->next = hdr->next->next;
             oldHdr->next = nullptr;
@@ -838,8 +838,8 @@ asyncHTTPrequest::header*  asyncHTTPrequest::_addHeader(const char* name, const 
         }
     }
     hdr->next = new header;
-    hdr->next->name = new char[strlen(name)+1];
-    strcpy(hdr->next->name, name);
+    hdr->next->name = new char[strlen_P(name)+1];
+    strcpy_P(hdr->next->name, name);
     hdr->next->value = new char[strlen(value)+1];
     strcpy(hdr->next->value, value);
     _release;
@@ -851,7 +851,7 @@ asyncHTTPrequest::header* asyncHTTPrequest::_getHeader(const char* name){
     _seize;
     header* hdr = _headers;
     while (hdr) {
-        if(strcasecmp(name, hdr->name) == 0) break;
+        if(strcasecmp_P(name, hdr->name) == 0) break;
         hdr = hdr->next;
     }
     _release;
@@ -864,7 +864,7 @@ asyncHTTPrequest::header* asyncHTTPrequest::_getHeader(int ndx){
     header* hdr = _headers;
     while (hdr) {
         if( ! ndx--) break;
-        hdr = hdr->next; 
+        hdr = hdr->next;
     }
     _release;
     return hdr;

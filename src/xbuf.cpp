@@ -21,7 +21,7 @@ size_t      xbuf::write(const uint8_t byte){
 
 //*******************************************************************************************************************
 size_t      xbuf::write(const char* buf){
-    return write((uint8_t*)buf, strlen(buf));
+    return write((uint8_t*)buf, strlen_P(buf));
 }
 
 //*******************************************************************************************************************
@@ -37,7 +37,7 @@ size_t      xbuf::write(const uint8_t* buf, const size_t len){
             addSeg();
         }
         size_t demand = _free < supply ? _free : supply;
-        memcpy(_tail->data + ((_offset + _used) % _segSize), buf + (len - supply), demand);
+        memcpy_P(_tail->data + ((_offset + _used) % _segSize), buf + (len - supply), demand);
         _free -= demand;
         _used += demand;
         supply -= demand;
@@ -92,7 +92,7 @@ size_t      xbuf::read(uint8_t* buf, const size_t len){
         read += chunk;
         if(_offset == _segSize){
             remSeg();
-            _offset = 0;        
+            _offset = 0;
         }
     }
     if( ! _used){
@@ -118,7 +118,7 @@ size_t      xbuf::peek(uint8_t* buf, const size_t len){
         read += chunk;
         if(offset == _segSize){
             seg = seg->next;
-            offset = 0;        
+            offset = 0;
         }
     }
     return read;
@@ -164,14 +164,14 @@ int      xbuf::indexOf(const char* target, const size_t begin){
                 if(memcmp(target+targetLen-compLen, seg->next->data, compLen) == 0){
                     return searchPos - _offset;
                 }
-            }  
+            }
         }
         searchPos++;
         segPos++;
         if(segPos == _segSize){
             seg = seg->next;
             segPos = 0;
-        } 
+        }
     }
     return -1;
 }
@@ -205,7 +205,7 @@ String      xbuf::readString(int endPos){
                 remSeg();
             }
         }
-    }   
+    }
     return result;
 }
 
@@ -225,7 +225,7 @@ String      xbuf::peekString(int endPos){
                 offset = 0;
             }
         }
-    }   
+    }
     return result;
 }
 
@@ -260,7 +260,7 @@ void        xbuf::remSeg(){
         if( ! _head){
             _tail = nullptr;
         }
-    }   
+    }
     _offset = 0;
 }
 
