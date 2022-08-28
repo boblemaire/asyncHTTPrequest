@@ -472,7 +472,7 @@ void  asyncHTTPrequest::_processChunks(){
         _contentLength += chunkLength;
         if(chunkLength == 0){
             char* connectionHdr = respHeaderValue("connection");
-            if(connectionHdr && (strcasecmp_P(connectionHdr,PSTR("disconnect")) == 0)){
+            if(connectionHdr && (strcasecmp_P(connectionHdr, PSTR("disconnect")) == 0)){
                 DEBUG_HTTP("*all chunks received - closing TCP\r\n");
                 _client->close();
             }
@@ -592,7 +592,7 @@ void  asyncHTTPrequest::_onData(void* Vbuf, size_t len){
 
     if( ! _chunked && (_response->available() + _contentRead) >= _contentLength){
         char* connectionHdr = respHeaderValue("connection");
-        if(connectionHdr && (strcasecmp_P(connectionHdr,PSTR("disconnect")) == 0)){
+        if(connectionHdr && (strcasecmp_P(connectionHdr, PSTR("disconnect")) == 0)){
             DEBUG_HTTP("*all data received - closing TCP\r\n");
             _client->close();
         }
@@ -827,7 +827,7 @@ asyncHTTPrequest::header*  asyncHTTPrequest::_addHeader(const char* name, const 
     _seize;
     header* hdr = (header*) &_headers;
     while(hdr->next) {
-        if(strcasecmp_P(name, hdr->next->name) == 0){
+        if(strcasecmp_P(hdr->next->name, name) == 0){
             header* oldHdr = hdr->next;
             hdr->next = hdr->next->next;
             oldHdr->next = nullptr;
@@ -851,7 +851,7 @@ asyncHTTPrequest::header* asyncHTTPrequest::_getHeader(const char* name){
     _seize;
     header* hdr = _headers;
     while (hdr) {
-        if(strcasecmp_P(name, hdr->name) == 0) break;
+        if(strcasecmp_P(hdr->name, name) == 0) break;
         hdr = hdr->next;
     }
     _release;
