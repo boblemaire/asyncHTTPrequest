@@ -8,7 +8,7 @@ Built on ESPAsyncTCP (AsyncTCP for ESP32)
 Methods similar in format and use to XmlHTTPrequest in Javascript.
 
 Supports:
-* GET and POST
+* GET, PUT and POST
 * Request and response headers
 * Chunked response
 * Single String response for short (<~5K) responses (heap permitting).
