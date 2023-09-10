@@ -29,7 +29,7 @@ Chunked responses are recognized and handled transparently.
 
 Testing has not been extensive, but it is a fairly lean library, and all of the functions were tested to some degree. It is working flawlessly in the application for which it was designed.
 
-Possibly I'll revisit this in the future and add support for additional HTTP request types like PUT.
+Added support for additional HTTP request types such as PUT.
 
 See the Wiki for an explanation of the various methods.
 

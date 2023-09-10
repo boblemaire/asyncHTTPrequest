@@ -155,10 +155,10 @@ class asyncHTTPrequest {
 
   private:
   
-    enum    {HTTPmethodGET,	HTTPmethodPOST} _HTTPmethod;
-			
+    enum    {HTTPmethodGET,	HTTPmethodPOST,HTTPmethodPUT, HTTPmethodMAX} _HTTPmethod;
+	const char* _HTTPmethodStringwithSpace[HTTPmethodMAX] = {"GET ", "POST ", "PUT "};		
     enum    readyStates {
-                readyStateUnsent = 0,           // Client created, open not yet called
+                readyStateUnsent = 0,           // Client created, open not yet called, "PATCH ", "DELETE ", "HEAD "
                 readyStateOpened =  1,          // open() has been called, connected
                 readyStateHdrsRecvd = 2,        // send() called, response headers available
                 readyStateLoading = 3,          // receiving, partial data available
