@@ -80,7 +80,11 @@ bool	asyncHTTPrequest::open(const char* method, const char* URL){
 
     if (strcmp(method, "GET") == 0) {
         _HTTPmethod = HTTPmethodGET;
-    } else if (strcmp(method, "POST") == 0) {
+    }
+	else if (strcmp(method, "PUT") == 0) {
+        _HTTPmethod = HTTPmethodPUT;
+    } 
+	else if (strcmp(method, "POST") == 0) {
         _HTTPmethod = HTTPmethodPOST;
     } else
         return false;
@@ -393,10 +397,10 @@ bool  asyncHTTPrequest::_connect(){
 bool   asyncHTTPrequest::_buildRequest(){
     DEBUG_HTTP("_buildRequest()\r\n");
     
-        // Build the header.
+        // Build the header._HTTPmethodStringwithSpace[_HTTPmethod]_HTTPmethod == HTTPmethodGET ? "GET " : "POST "
 
     if( ! _request) _request = new xbuf;
-    _request->write(_HTTPmethod == HTTPmethodGET ? "GET " : "POST ");
+    _request->write(_HTTPmethodStringwithSpace[_HTTPmethod]);
     _request->write(_URL->path);
     _request->write(_URL->query);
     _request->write(" HTTP/1.1\r\n");
